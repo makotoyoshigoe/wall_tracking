@@ -25,7 +25,7 @@ def generate_launch_description():
     TURTLEBOT3_MODEL = 'burger'
     model_folder = 'turtlebot3_' + TURTLEBOT3_MODEL
     urdf_path = os.path.join(
-        get_package_share_directory('turtlebot3_wall_tracking'),
+        get_package_share_directory('wall_tracking'),
         'models',
         model_folder,
         'model.sdf'

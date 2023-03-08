@@ -1,7 +1,7 @@
-#include"turtlebot3_wall_tracking/wall_tracking.hpp"
+#include"wall_tracking/wall_tracking.hpp"
 #include<iostream>
 
-namespace Turtlebot3WallTracking
+namespace WallTracking
 {
     void WallTracking::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
     {
