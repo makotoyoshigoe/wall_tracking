@@ -3,7 +3,7 @@
 #include<geometry_msgs/msg/twist.hpp>
 #include<rclcpp/qos.hpp>
 
-namespace Turtlebot3WallTracking
+namespace WallTracking
 {
     class WallTracking : public rclcpp::Node
     {
