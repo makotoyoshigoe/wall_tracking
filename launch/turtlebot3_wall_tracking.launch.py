@@ -8,17 +8,17 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
-    package = "turtlebot3_wall"
+    package = "turtlebot3_wall_tracking"
     config = os.path.join(
         get_package_share_directory(package), 
         "config", 
-        "run_along_wall.param.yaml"
+        "wall_tracking.param.yaml"
     )
     
     node = Node(
         package=package, 
-        name="run_along_wall", 
-        executable="run_along_wall", 
+        name="wall_tracking", 
+        executable="wall_tracking", 
         parameters=[config]
     )
     

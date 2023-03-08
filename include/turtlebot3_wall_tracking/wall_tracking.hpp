@@ -3,12 +3,12 @@
 #include<geometry_msgs/msg/twist.hpp>
 #include<rclcpp/qos.hpp>
 
-namespace Turtlebot3Wall
+namespace Turtlebot3WallTracking
 {
-    class RunAlongWall : public rclcpp::Node
+    class WallTracking : public rclcpp::Node
     {
         public:
-            explicit RunAlongWall();
+            explicit WallTracking();
         
         protected:
             void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg);

@@ -1,9 +1,9 @@
-#include"turtlebot3_wall/run_along_wall.hpp"
+#include"turtlebot3_wall_tracking/wall_tracking.hpp"
 #include<iostream>
 
-namespace Turtlebot3Wall
+namespace Turtlebot3WallTracking
 {
-    void RunAlongWall::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
+    void WallTracking::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
     {
         data0 = msg->ranges[0];
         data90 = msg->ranges[90];
@@ -34,7 +34,7 @@ namespace Turtlebot3Wall
         cmd_vel_pub_->publish(cmd_vel_msg);
     }
 
-    RunAlongWall::RunAlongWall()
+    WallTracking::WallTracking()
     : Node("run_along_wall"), count_(0)
     {
         set_param();
@@ -44,7 +44,7 @@ namespace Turtlebot3Wall
         init_variable();
     }
 
-    void RunAlongWall::set_param()
+    void WallTracking::set_param()
     {
         declare_parameter("max_linear_vel", 0.0);
         declare_parameter("max_angular_vel", 0.0);
@@ -57,7 +57,7 @@ namespace Turtlebot3Wall
         declare_parameter("kd", 0.0);
     }
 
-    void RunAlongWall::get_param()
+    void WallTracking::get_param()
     {
         max_linear_vel = get_parameter("max_linear_vel").as_double();
         max_angular_vel = get_parameter("max_angular_vel").as_double();
@@ -70,17 +70,17 @@ namespace Turtlebot3Wall
         kd = get_parameter("kd").as_double();
     }
 
-    void RunAlongWall::init_scan_sub()
+    void WallTracking::init_scan_sub()
     {
-        scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>("scan", rclcpp::QoS(10), std::bind(&RunAlongWall::scan_callback, this, std::placeholders::_1));
+        scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>("scan", rclcpp::QoS(10), std::bind(&WallTracking::scan_callback, this, std::placeholders::_1));
     }
 
-    void RunAlongWall::init_cmd_vel_pub()
+    void WallTracking::init_cmd_vel_pub()
     {
         cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("turtlebot3/cmd_vel", rclcpp::QoS(10));
     }
 
-    void RunAlongWall::init_variable()
+    void WallTracking::init_variable()
     {
         e = 0.0;
         ei = 0.0;

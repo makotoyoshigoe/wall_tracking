@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(turtlebot3_wall)
+project(turtlebot3_wall_tracking)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -11,11 +11,11 @@ ament_auto_find_build_dependencies()
 
 include_directories(include)
 ament_auto_add_library(${PROJECT_NAME} SHARED
- src/run_along_wall.cpp include/${PROJECT_NAME}/run_along_wall.hpp)
+ src/wall_tracking.cpp include/${PROJECT_NAME}/wall_tracking.hpp)
 
-ament_auto_add_executable(run_along_wall
-  src/run_along_wall.cpp
-  src/run_along_wall_node.cpp
+ament_auto_add_executable(wall_tracking
+  src/wall_tracking.cpp
+  src/wall_tracking_node.cpp
 )
 
 if(BUILD_TESTING)
