@@ -19,9 +19,9 @@ namespace WallTracking
                 sum += 3.5;  
         }
 
-        RCLCPP_INFO(get_logger(), "range: %f", sum/40);
+        RCLCPP_INFO(get_logger(), "range: %f", sum/20);
         
-        e = sum/40 - distance_from_wall;
+        e = sum/20 - distance_from_wall;
         ei += e * sampling_rate;
         ed = e / sampling_rate;
 
@@ -39,13 +39,14 @@ namespace WallTracking
     {
         set_param();
         get_param();
+        init_variable();
         init_scan_sub();
         init_cmd_vel_pub();
-        init_variable();
     }
 
     void WallTracking::set_param()
     {
+        declare_parameter("robot_name", "");
         declare_parameter("max_linear_vel", 0.0);
         declare_parameter("max_angular_vel", 0.0);
         declare_parameter("min_angular_vel", 0.0);
@@ -59,6 +60,7 @@ namespace WallTracking
 
     void WallTracking::get_param()
     {
+        robot_name = get_parameter("robot_name").as_string();
         max_linear_vel = get_parameter("max_linear_vel").as_double();
         max_angular_vel = get_parameter("max_angular_vel").as_double();
         min_angular_vel = get_parameter("min_angular_vel").as_double();
@@ -77,7 +79,7 @@ namespace WallTracking
 
     void WallTracking::init_cmd_vel_pub()
     {
-        cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("turtlebot3/cmd_vel", rclcpp::QoS(10));
+        cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic_name, rclcpp::QoS(10));
     }
 
     void WallTracking::init_variable()
@@ -87,5 +89,6 @@ namespace WallTracking
         ed = 0.0;
         ang_z = 0.0;
         pre_ang_z = 0.0;
+        cmd_vel_topic_name = robot_name + "/cmd_vel";
     }
 }
