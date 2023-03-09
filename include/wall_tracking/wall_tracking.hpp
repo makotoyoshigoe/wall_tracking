@@ -22,7 +22,9 @@ namespace WallTracking
             size_t count_;
             rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
             rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
-
+            
+            std::string robot_name;
+            std::string cmd_vel_topic_name;
             int scan_count;
             float distance_from_wall;
             float distance_to_stop;
