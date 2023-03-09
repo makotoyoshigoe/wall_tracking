@@ -35,7 +35,7 @@ namespace WallTracking
     }
 
     WallTracking::WallTracking()
-    : Node("run_along_wall"), count_(0)
+    : Node("wall_tracking"), count_(0)
     {
         set_param();
         get_param();
