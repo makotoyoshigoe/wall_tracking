@@ -3,8 +3,8 @@
 <package format="3">
   <name>wall_tracking</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="myoshigo0127@gmail.com">ubuntu</maintainer>
+  <description>Package to track walls</description>
+  <maintainer email="myoshigo0127@gmail.com">Makoto Yoshigoe</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
