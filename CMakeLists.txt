@@ -13,7 +13,7 @@ include_directories(include)
 ament_auto_add_library(${PROJECT_NAME} SHARED
  src/wall_tracking.cpp include/${PROJECT_NAME}/wall_tracking.hpp)
 
-ament_auto_add_executable(wall_tracking_exe
+ament_auto_add_executable(wall_tracking_node
   src/wall_tracking.cpp
   src/wall_tracking_node.cpp
 )
