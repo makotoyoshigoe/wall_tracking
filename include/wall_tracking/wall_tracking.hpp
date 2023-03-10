@@ -11,9 +11,11 @@
 #include <sensor_msgs/msg/laser_scan.hpp>
 
 
-namespace WallTracking {
+namespace WallTracking
+{
 
-class WallTracking : public rclcpp::Node {
+class WallTracking : public rclcpp::Node
+{
 public:
   WallTracking();
 
