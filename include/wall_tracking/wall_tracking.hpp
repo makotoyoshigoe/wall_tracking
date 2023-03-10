@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023 Makoto Yoshigoe myoshigo0127@gmail.com
+// SPDX-License-Identifier: Apache-2.0
+
 #include<rclcpp/rclcpp.hpp>
 #include<sensor_msgs/msg/laser_scan.hpp>
 #include<geometry_msgs/msg/twist.hpp>
