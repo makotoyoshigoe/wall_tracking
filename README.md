@@ -11,7 +11,7 @@
 - {robot_name}/cmd_vel([geometry_msgs/msg/Twist](https://docs.ros2.org/latest/api/geometry_msgs/msg/Twist.html))
     - ロボットの速度指令値
     - robot_nameはパラメータ(~robot_name)で設定
-### Parameters
+### [Parameters](https://github.com/makotoyoshigoe/wall_tracking/blob/master/config/wall_tracking.param.yaml)
 - ~robot_name (string, default: "turtlebot3")
     - ロボットの名前
 - ~distance_from_wall (double, default: 0.55[m])
