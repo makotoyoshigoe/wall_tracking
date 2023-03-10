@@ -20,8 +20,8 @@ def generate_launch_description():
     
     node = Node(
         package=package, 
-        name="wall_tracking", 
-        executable="wall_tracking_exe", 
+        name="wall_tracking_node", 
+        executable="wall_tracking_node", 
         parameters=[config]
     )
     

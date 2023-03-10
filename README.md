@@ -2,7 +2,7 @@
 左側にある壁や物体と一定の距離を保ちながらロボットを走行させるためのパッケージです。
 
 # Nodes
-## wall_tracking
+## wall_tracking_node
 このノードはLiDARからのスキャンデータを受け取り、そのうちの35[deg]から55[deg]のデータを使用し、PID制御によってそれらの平均値が目標値になるようにロボットに速度指令を送るノードです。
 ### Subscribed Topics
 - scan([sensor_msgs/msg/LaserScan](https://docs.ros2.org/foxy/api/sensor_msgs/msg/LaserScan.html))

@@ -38,7 +38,7 @@ void WallTracking::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr ms
 }
 
 WallTracking::WallTracking()
-: Node("wall_tracking"), count_(0)
+: Node("wall_tracking_node"), count_(0)
 {
   set_param();
   get_param();
