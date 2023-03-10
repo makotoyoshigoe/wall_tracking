@@ -1,4 +1,4 @@
-# wall_tracking[![build-test](https://github.com/makotoyoshigoe/wall_tracking/blob/master/.github/workflows/build-test.yaml/badge.svg)](https://github.com/makotoyoshigoe/wall_tracking/actions/workflows/build-test.yaml)
+# wall_tracking [![build-test](https://github.com/makotoyoshigoe/wall_tracking/actions/workflows/build-test.yaml/badge.svg)](https://github.com/makotoyoshigoe/wall_tracking/actions/workflows/build-test.yaml)
 左側にある壁や物体と一定の距離を保ちながらロボットを走行させるためのパッケージです。
 
 # Nodes
