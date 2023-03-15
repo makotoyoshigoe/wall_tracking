@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "wall_tracking/wall_tracking.hpp"
-#include <iostream>
+#include <chrono>
+
+using namespace std::chrono_literals;
 
 namespace WallTracking
 {
@@ -10,31 +12,37 @@ void WallTracking::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr ms
 {
   data0 = msg->ranges[0];
   data90 = msg->ranges[90];
-
-  cmd_vel_msg.linear.x = (data0 < distance_to_stop) ? 0.0 : max_linear_vel;
-
-  double sum = 0;
-  for (size_t i = 0; i < 20; i++) {
-    if (msg->ranges[35 + i] != INFINITY && msg->ranges[35 + i] != NAN) {
-      sum += msg->ranges[35 + i] * sin((35 + i) * (M_PI / 180));
-    } else {
-      sum += 3.5;
+  if(data0 < distance_to_stop){
+    cmd_vel_msg.linear.x = 0.0;
+    cmd_vel_msg.angular.z = -1.57/2;
+    cmd_vel_pub_->publish(cmd_vel_msg);
+    rclcpp::sleep_for(2000ms);
+  }else{
+    cmd_vel_msg.linear.x = max_linear_vel;
+  
+    double sum = 0, n = 10, start = 69;
+    for (size_t i = 0; i < n; i++) {
+      if (msg->ranges[start + i] != INFINITY && msg->ranges[start + i] != NAN) {
+        sum += msg->ranges[start + i] * sin((start + i) * (M_PI / 180));
+      } else {
+        sum += msg->range_max;
+      }
     }
+
+    e = sum / n - distance_from_wall;
+    ei += e * sampling_rate;
+    ed = e / sampling_rate;
+
+    float ang_z = e * kp + ei * ki + ed * kd;
+
+    RCLCPP_INFO(get_logger(), "range: %f", sum / n);
+
+    if (ang_z > max_angular_vel) {ang_z = max_angular_vel;}
+    if (ang_z < min_angular_vel) {ang_z = min_angular_vel;}
+    cmd_vel_msg.angular.z = ang_z;
+
+    cmd_vel_pub_->publish(cmd_vel_msg);
   }
-
-  RCLCPP_INFO(get_logger(), "range: %f", sum / 20);
-
-  e = sum / 20 - distance_from_wall;
-  ei += e * sampling_rate;
-  ed = e / sampling_rate;
-
-  float ang_z = e * kp + ei * ki + ed * kd;
-  // RCLCPP_INFO(get_logger(), "angular velocity: %f", ang_z);
-  if (ang_z > max_angular_vel) {ang_z = max_angular_vel;}
-  if (ang_z < min_angular_vel) {ang_z = min_angular_vel;}
-  cmd_vel_msg.angular.z = ang_z;
-
-  cmd_vel_pub_->publish(cmd_vel_msg);
 }
 
 WallTracking::WallTracking()
@@ -59,6 +67,9 @@ void WallTracking::set_param()
   declare_parameter("kp", 0.0);
   declare_parameter("ki", 0.0);
   declare_parameter("kd", 0.0);
+  declare_parameter("kp2", 0.0);
+  declare_parameter("ki2", 0.0);
+  declare_parameter("kd2", 0.0);
 }
 
 void WallTracking::get_param()
@@ -93,8 +104,6 @@ void WallTracking::init_variable()
   e = 0.0;
   ei = 0.0;
   ed = 0.0;
-  ang_z = 0.0;
-  pre_ang_z = 0.0;
   cmd_vel_topic_name = robot_name + "/cmd_vel";
 }
 }  // namespace WallTracking
