@@ -19,7 +19,6 @@ void WallTracking::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr ms
     rclcpp::sleep_for(2000ms);
   }else{
     cmd_vel_msg.linear.x = max_linear_vel;
-  
     double sum = 0, n = 10, start = 69;
     for (size_t i = 0; i < n; i++) {
       if (msg->ranges[start + i] != INFINITY && msg->ranges[start + i] != NAN) {
