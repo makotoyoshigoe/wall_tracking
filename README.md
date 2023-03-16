@@ -30,7 +30,7 @@
     - Pゲイン
 - ~ki (double, default: 0.0)
     - Iゲイン
-- ~kd (double, default: 0.1)
+- ~kd (double, default: 0.0)
     - Dゲイン
 ## 動作環境
 - ROS2 Humble (Ubuntu 22.04.1 LTS)
