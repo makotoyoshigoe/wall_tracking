@@ -1,6 +1,9 @@
 # wall_tracking [![build-test](https://github.com/makotoyoshigoe/wall_tracking/actions/workflows/build-test.yaml/badge.svg)](https://github.com/makotoyoshigoe/wall_tracking/actions/workflows/build-test.yaml)
 左側にある壁や物体と一定の距離を保ちながらロボットを走行させるためのパッケージです。
 
+# デモ動画
+https://user-images.githubusercontent.com/91446273/225591825-b1945d4b-a7fb-4d5a-9edf-96e4bbe11918.mp4
+
 # Nodes
 ## wall_tracking_node
 このノードはLiDARからのスキャンデータを受け取り、そのうちの69[deg]から78[deg]のデータを使用し、PID制御によってそれらの平均値が目標値になるようにロボットに速度指令を送るノードです。
