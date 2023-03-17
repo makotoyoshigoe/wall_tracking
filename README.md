@@ -29,11 +29,11 @@ https://user-images.githubusercontent.com/91446273/225591825-b1945d4b-a7fb-4d5a-
     - 角速度の最小値
 - ~sampling_rate (double, default: 0.033[s])
     - LiDARのサンプリング周期
-- ~kp (double, default: 8.0)
+- ~kp (double, default: 4.0)
     - Pゲイン
-- ~ki (double, default: 0.0)
+- ~ki (double, default: 0.01)
     - Iゲイン
-- ~kd (double, default: 0.0)
+- ~kd (double, default: 0.25)
     - Dゲイン
 ## 動作環境
 - ROS2 Humble (Ubuntu 22.04.1 LTS)
