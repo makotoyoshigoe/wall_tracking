@@ -29,9 +29,9 @@ https://user-images.githubusercontent.com/91446273/225591825-b1945d4b-a7fb-4d5a-
     - 角速度の最小値
 - ~sampling_rate (double, default: 0.033[s])
     - LiDARのサンプリング周期
-- ~kp (double, default: 4.0)
+- ~kp (double, default: 4.5)
     - Pゲイン
-- ~ki (double, default: 0.01)
+- ~ki (double, default: 0.005)
     - Iゲイン
 - ~kd (double, default: 0.25)
     - Dゲイン
