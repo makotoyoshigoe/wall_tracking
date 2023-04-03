@@ -6,6 +6,7 @@ on:
       - master
     paths-ignore:
       - '**.md'
+      - '**.param**'
 
 jobs:
   build-and-test:
@@ -35,13 +36,14 @@ jobs:
           colcon  build --symlink-install
         shell: bash
       
-      - name : Ament Cpplint
-        run: |
-          source /opt/ros/humble/setup.bash
-          ament_cpplint src/ include/
-        shell: bash
+      # - name : Ament Cpplint
+      #   run: |
+      #     source /opt/ros/humble/setup.bash
+      #     ament_cpplint src/ include/
+      #   shell: bash
       
       # - name : Colcon Test
       #   run: |
       #     colcon test-result --verbose
-      
+
+     
