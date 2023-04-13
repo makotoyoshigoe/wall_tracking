@@ -4,18 +4,15 @@
 #ifndef WALL_TRACKING__WALL_TRACKING_HPP_
 #define WALL_TRACKING__WALL_TRACKING_HPP_
 
-#include <string>
 #include <geometry_msgs/msg/twist.hpp>
 #include <rclcpp/qos.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
+#include <string>
 
+namespace WallTracking {
 
-namespace WallTracking
-{
-
-class WallTracking : public rclcpp::Node
-{
+class WallTracking : public rclcpp::Node {
 public:
   WallTracking();
 
@@ -49,6 +46,6 @@ private:
   geometry_msgs::msg::Twist cmd_vel_msg;
 };
 
-}  // namespace WallTracking
+} // namespace WallTracking
 
-#endif  // WALL_TRACKING__WALL_TRACKING_HPP_
+#endif // WALL_TRACKING__WALL_TRACKING_HPP_
