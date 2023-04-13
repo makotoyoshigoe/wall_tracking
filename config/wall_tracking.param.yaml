@@ -7,6 +7,9 @@
     max_angular_vel: 2.84
     min_angular_vel: -2.84
     sampling_rate: 0.033
-    kp: 4.5
-    ki: 0.005
-    kd: 0.25
+    kp: 10.0
+    ki: 0.0
+    kd: 0.0
+    sampling_point: 8
+    start_range: 71
+
