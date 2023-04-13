@@ -26,6 +26,8 @@ protected:
   void init_scan_sub();
   void init_cmd_vel_pub();
   void init_variable();
+  double pid_control(double input, double goal);
+  double compute_lidar_array_ave(std::vector<float> array, int sample, int start_i, double range_max);
 
 private:
   size_t count_;
@@ -34,17 +36,16 @@ private:
 
   std::string robot_name;
   std::string cmd_vel_topic_name;
-  int scan_count;
   float distance_from_wall;
   float distance_to_stop;
   float max_linear_vel;
   float max_angular_vel, min_angular_vel;
-  float data90;
   float data0;
-  float ang_z, pre_ang_z;
   float sampling_rate;
-  float e, ei, ed;
+  float ei_;
   float kp, ki, kd;
+  float lateral_mean;
+  int sampling_point, start_range;
   geometry_msgs::msg::Twist cmd_vel_msg;
 };
 
