@@ -9,9 +9,7 @@ endif()
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
-include_directories(include)
-ament_auto_add_library(${PROJECT_NAME} SHARED
- src/wall_tracking.cpp include/${PROJECT_NAME}/wall_tracking.hpp)
+include_directories(ineclude)
 
 ament_auto_add_executable(wall_tracking_node
   src/wall_tracking.cpp
