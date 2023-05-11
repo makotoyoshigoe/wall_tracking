@@ -3,8 +3,7 @@
 
 #include "wall_tracking/wall_tracking.hpp"
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<WallTracking::WallTracking>();
   rclcpp::spin(node);
