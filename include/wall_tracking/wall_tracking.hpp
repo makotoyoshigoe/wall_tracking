@@ -9,6 +9,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <string>
+#include <vector>
 
 namespace WallTracking {
 
@@ -17,17 +18,20 @@ public:
   WallTracking();
 
 protected:
-  void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
+  void scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
   void set_param();
   void get_param();
   void init_scan_sub();
   void init_cmd_vel_pub();
   void init_variable();
-  double pid_control(double input, double goal);
-  double compute_lidar_array_ave(std::vector<float> array, int start_i, int end_i, double range_max);
+  double pid_control(double input);
+  double compute_lidar_array_ave(std::vector<float> array, int start_deg,
+                                 int end_deg);
+  int convert_deg2index(int deg);
+  double convert_index2deg(int index);
+  void pub_cmd_vel(double linear_x, double anguler_z);
 
 private:
-  size_t count_;
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
   geometry_msgs::msg::Twist cmd_vel_msg;
@@ -37,12 +41,16 @@ private:
   float distance_to_stop;
   float max_linear_vel;
   float max_angular_vel, min_angular_vel;
-  float data0;
   float sampling_rate;
   float ei_;
   float kp, ki, kd;
   float lateral_mean;
-  int start_deg, end_deg;
+  int start_deg_lateral, end_deg_lateral;
+  int start_deg_longitude, end_deg_longitude;
+  float range_max;
+  float angle_increment_deg;
+  float angle_min_deg;
+  int ray_th;
 };
 
 } // namespace WallTracking
