@@ -46,11 +46,13 @@ private:
   float kp, ki, kd;
   float lateral_mean;
   int start_deg_lateral, end_deg_lateral;
-  int start_deg_longitude, end_deg_longitude;
   float range_max;
   float angle_increment_deg;
   float angle_min_deg;
+  int rt_sum, rt_sum_th;
   int ray_th;
+  float wheel_separation;
+  double pre_range;
 };
 
 } // namespace WallTracking

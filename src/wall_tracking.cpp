@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <chrono>
 #include <rclcpp/rclcpp.hpp>
+#include <iostream>
 
 using namespace std::chrono_literals;
 
@@ -24,22 +25,33 @@ void WallTracking::scan_callback(
   angle_increment_deg = msg->angle_increment * 180 / M_PI;
   angle_min_deg = round(msg->angle_min * 180 / M_PI);
 
-  int start_index = convert_deg2index(start_deg_longitude);
-  int end_index = convert_deg2index(end_deg_longitude);
+  int start_index = convert_deg2index(atan2f(-wheel_separation/2, distance_to_stop)*180/M_PI);
+  int end_index = convert_deg2index(atan2f(wheel_separation/2, distance_to_stop)*180/M_PI);
+  // RCLCPP_INFO(get_logger(), "start: %d, end: %d", start_index, end_index);
   int ray = 0;
-  for (int i = start_index; i < end_index; ++i) {
+  std::vector<float> ray_ranges, ray_ranges_deg;
+  for (int i = start_index; i <= end_index; ++i) {
     float range = msg->ranges[i] * cos(convert_index2deg(i) * (M_PI / 180));
-    if (range < distance_to_stop)
+    // std::cout << msg->ranges[i] << ", ";
+    if (range > msg->range_min && range < distance_to_stop){
+      ray_ranges_deg.push_back(convert_index2deg(i));
+      ray_ranges.push_back(range);
       ++ray;
+    }
   }
-  RCLCPP_INFO(get_logger(), "ray num: %d", ray);
-  if (ray >= ray_th) {
+  // std::cout << std::flush;
+  rt_sum = (ray >= ray_th) ? rt_sum + 1 : 0;
+  if (rt_sum > rt_sum_th) {
+    // for(int i=0; i<ray_ranges.size(); ++i){
+    //   RCLCPP_INFO(get_logger(), "ray num: %d", ray);
+    //   // RCLCPP_INFO(get_logger(), "deg: %lf, range: %lf", ray_ranges_deg[i], ray_ranges[i]);
+    // }
+    RCLCPP_INFO(get_logger(), "ray num: %d", ray);
     pub_cmd_vel(0.0, -M_PI / 4);
     rclcpp::sleep_for(2000ms);
   } else {
     lateral_mean = compute_lidar_array_ave(msg->ranges, start_deg_lateral,
                                            end_deg_lateral);
-    RCLCPP_INFO(get_logger(), "range: %f", lateral_mean);
     double angular_z = pid_control(lateral_mean);
     pub_cmd_vel(max_linear_vel, angular_z);
   }
@@ -58,9 +70,9 @@ void WallTracking::set_param() {
   declare_parameter("kd", 0.0);
   declare_parameter("start_deg_lateral", 0);
   declare_parameter("end_deg_lateral", 0);
-  declare_parameter("start_deg_longitude", 0);
-  declare_parameter("end_deg_longitude", 0);
   declare_parameter("ray_th", 0);
+  declare_parameter("rt_sum_th", 0);
+  declare_parameter("wheel_separation", 0.0);
 }
 
 void WallTracking::get_param() {
@@ -76,9 +88,9 @@ void WallTracking::get_param() {
   kd = get_parameter("kd").as_double();
   start_deg_lateral = get_parameter("start_deg_lateral").as_int();
   end_deg_lateral = get_parameter("end_deg_lateral").as_int();
-  start_deg_longitude = get_parameter("start_deg_longitude").as_int();
-  end_deg_longitude = get_parameter("end_deg_longitude").as_int();
   ray_th = get_parameter("ray_th").as_int();
+  rt_sum_th = get_parameter("rt_sum_th").as_int();
+  wheel_separation = get_parameter("wheel_separation").as_double();
 }
 
 void WallTracking::init_scan_sub() {
@@ -95,15 +107,21 @@ void WallTracking::init_cmd_vel_pub() {
 void WallTracking::init_variable() {
   ei_ = 0.0;
   cmd_vel_topic_name = robot_name + "/cmd_vel";
+  rt_sum = 0;
+  pre_range = 1000000;
 }
 
 double WallTracking::pid_control(double input) {
+  RCLCPP_INFO(get_logger(), "range: %lf", input);
+  double e_range = pre_range - input;
   float e = input - distance_from_wall;
   ei_ += e * sampling_rate;
   float ed = e / sampling_rate;
 
   float ang_z = e * kp + ei_ * ki + ed * kd;
+  if(e < 0) ang_z *= -1;
   ang_z = std::max(std::min(ang_z, max_angular_vel), min_angular_vel);
+  pre_range = input;
   return ang_z;
 }
 
