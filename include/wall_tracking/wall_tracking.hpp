@@ -24,12 +24,12 @@ protected:
   void init_scan_sub();
   void init_cmd_vel_pub();
   void init_variable();
-  double pid_control(double input);
-  double compute_lidar_array_ave(std::vector<float> array, int start_deg,
+  double lateral_pid_control(double input);
+  double compute_ray_mean(std::vector<float> array, int start_deg,
                                  int end_deg);
   int convert_deg2index(int deg);
   double convert_index2deg(int index);
-  void pub_cmd_vel(double linear_x, double anguler_z);
+  void pub_cmd_vel(float linear_x, float anguler_z);
 
 private:
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
@@ -37,22 +37,20 @@ private:
   geometry_msgs::msg::Twist cmd_vel_msg;
   std::string robot_name;
   std::string cmd_vel_topic_name;
-  float distance_from_wall;
-  float distance_to_stop;
+  double distance_from_wall;
+  double distance_to_stop;
   float max_linear_vel;
   float max_angular_vel, min_angular_vel;
-  float sampling_rate;
+  double sampling_rate;
   float ei_;
-  float kp, ki, kd;
-  float lateral_mean;
+  double kp, ki, kd;
   int start_deg_lateral, end_deg_lateral;
   float range_max;
   float angle_increment_deg;
   float angle_min_deg;
-  int rt_sum, rt_sum_th;
   int ray_th;
   float wheel_separation;
-  double pre_range;
+  double distance_to_turn;
 };
 
 } // namespace WallTracking
