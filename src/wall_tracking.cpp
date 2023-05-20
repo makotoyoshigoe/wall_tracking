@@ -40,8 +40,7 @@ void WallTracking::scan_callback(
     }
   }
   // std::cout << std::flush;
-  rt_sum = (ray >= ray_th) ? rt_sum + 1 : 0;
-  if (rt_sum > rt_sum_th) {
+  if (ray >= ray_th) {
     // for(int i=0; i<ray_ranges.size(); ++i){
     //   RCLCPP_INFO(get_logger(), "ray num: %d", ray);
     //   // RCLCPP_INFO(get_logger(), "deg: %lf, range: %lf", ray_ranges_deg[i], ray_ranges[i]);
@@ -71,7 +70,6 @@ void WallTracking::set_param() {
   declare_parameter("start_deg_lateral", 0);
   declare_parameter("end_deg_lateral", 0);
   declare_parameter("ray_th", 0);
-  declare_parameter("rt_sum_th", 0);
   declare_parameter("wheel_separation", 0.0);
 }
 
@@ -89,7 +87,6 @@ void WallTracking::get_param() {
   start_deg_lateral = get_parameter("start_deg_lateral").as_int();
   end_deg_lateral = get_parameter("end_deg_lateral").as_int();
   ray_th = get_parameter("ray_th").as_int();
-  rt_sum_th = get_parameter("rt_sum_th").as_int();
   wheel_separation = get_parameter("wheel_separation").as_double();
 }
 
@@ -107,8 +104,6 @@ void WallTracking::init_cmd_vel_pub() {
 void WallTracking::init_variable() {
   ei_ = 0.0;
   cmd_vel_topic_name = robot_name + "/cmd_vel";
-  rt_sum = 0;
-  pre_range = 1000000;
 }
 
 double WallTracking::pid_control(double input) {

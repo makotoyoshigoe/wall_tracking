@@ -49,7 +49,6 @@ private:
   float range_max;
   float angle_increment_deg;
   float angle_min_deg;
-  int rt_sum, rt_sum_th;
   int ray_th;
   float wheel_separation;
   double pre_range;

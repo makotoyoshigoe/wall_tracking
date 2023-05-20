@@ -13,5 +13,4 @@
     start_deg_lateral: 69
     end_deg_lateral: 78
     ray_th: 16
-    rt_sum_th: 1
     wheel_separation: 0.28
