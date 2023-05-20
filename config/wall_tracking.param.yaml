@@ -1,8 +1,8 @@
 /**:
   ros__parameters:
     robot_name: "turtlebot3"
-    distance_from_wall: 0.8
-    distance_to_stop: 0.85
+    distance_from_wall: 0.6
+    distance_to_stop: 0.5
     max_linear_vel: 0.25
     max_angular_vel: 0.5
     min_angular_vel: -0.5
@@ -14,3 +14,4 @@
     end_deg_lateral: 78
     ray_th: 16
     wheel_separation: 0.28
+    distance_to_turn: 1.0
