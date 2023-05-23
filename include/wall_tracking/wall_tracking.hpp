@@ -25,10 +25,11 @@ protected:
   void init_cmd_vel_pub();
   void init_variable();
   double lateral_pid_control(double input);
+  double longitude_pid_control(double input);
   double compute_ray_mean(std::vector<float> array, int start_deg,
                                  int end_deg);
-  int convert_deg2index(int deg);
-  double convert_index2deg(int index);
+  int deg2index(int deg);
+  double index2deg(int index);
   void pub_cmd_vel(float linear_x, float anguler_z);
 
 private:
@@ -42,8 +43,9 @@ private:
   float max_linear_vel;
   float max_angular_vel, min_angular_vel;
   double sampling_rate;
-  float ei_;
+  float ei_, ei2_;
   double kp, ki, kd;
+  double kp2, ki2, kd2;
   int start_deg_lateral, end_deg_lateral;
   float range_max;
   float angle_increment_deg;
@@ -51,6 +53,8 @@ private:
   int ray_th;
   float wheel_separation;
   double distance_to_turn;
+  double distance_to_skip;
+  int gap_deg, gap2_deg;
 };
 
 } // namespace WallTracking
