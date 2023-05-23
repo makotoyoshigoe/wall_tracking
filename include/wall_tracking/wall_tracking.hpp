@@ -4,6 +4,9 @@
 #ifndef WALL_TRACKING__WALL_TRACKING_HPP_
 #define WALL_TRACKING__WALL_TRACKING_HPP_
 
+#define DEG2RAD(deg) ((deg)*M_PI/180)
+#define RAD2DEG(rad) ((rad)*180/M_PI)
+
 #include <geometry_msgs/msg/twist.hpp>
 #include <rclcpp/qos.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -26,10 +29,11 @@ protected:
   void init_variable();
   double lateral_pid_control(double input);
   double longitude_pid_control(double input);
-  double compute_ray_mean(std::vector<float> array, int start_deg,
+  double ray_mean(std::vector<float> array, int start_deg,
                                  int end_deg);
   int deg2index(int deg);
   double index2deg(int index);
+  double index2rad(int index);
   void pub_cmd_vel(float linear_x, float anguler_z);
 
 private:
