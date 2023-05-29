@@ -68,7 +68,6 @@ void WallTracking::scan_callback(
   //   skip = false;
   //   judge = false;
   // }
-
   if (ray >= ray_th) {
     RCLCPP_INFO(get_logger(), "ray num: %d", ray);
     pub_cmd_vel(max_linear_vel / 4, -M_PI / 4);

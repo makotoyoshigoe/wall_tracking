@@ -1,6 +1,6 @@
 /**:
   ros__parameters:
-    robot_name: ""
+    robot_name: "turtlebot3"
     distance_from_wall: 0.7
     distance_to_stop: 0.7
     max_linear_vel: 0.15
