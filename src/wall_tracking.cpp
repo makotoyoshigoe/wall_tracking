@@ -44,29 +44,45 @@ void WallTracking::scan_callback(
   }
   double lateral_mean =
       ray_mean(msg->ranges, start_deg_lateral, end_deg_lateral);
-  double skip_deg = RAD2DEG(atan2(distance_from_wall, distance_to_skip));
-  int skip_index = deg2index(skip_deg);
-  double skip_range = msg->ranges[skip_index] * cos(DEG2RAD(skip_deg));
-  bool gap = msg->ranges[deg2index(gap_deg)] * cos(DEG2RAD(gap_deg)) >
-                 distance_from_wall * 1.1 ||
-             msg->ranges[deg2index(90)] > distance_from_wall * 1.1;
+  // auto max_i = std::max_element(msg->ranges.begin()+deg2index(start_deg_lateral-1), msg->ranges.begin()+deg2index(end_deg_lateral)+1);
+  // RCLCPP_INFO(get_logger(), "max ray index: %lf, max ray: %lf", index2deg(*max_i), msg->ranges[*max_i]);
+  bool gap = msg->ranges[deg2index(gap_deg)] * sin(DEG2RAD(gap_deg)) >
+             distance_from_wall*1.1;
+  bool gap90 = msg->ranges[deg2index(end_deg_lateral+1)] > distance_from_wall*1.1;
   bool front_left_wall =
-      msg->ranges[deg2index(gap2_deg)] * cos(DEG2RAD(gap2_deg)) <
-      distance_from_wall * 2;
+      msg->ranges[deg2index(gap2_deg)] * sin(DEG2RAD(gap2_deg)) <=
+      distance_from_wall;
+
+  // RCLCPP_INFO(get_logger(), "front left wall: %lf",
+              // msg->ranges[deg2index(gap2_deg)] * sin(DEG2RAD(gap2_deg)));
+  // RCLCPP_INFO(get_logger(), "range: %lf", lateral_mean);
+  // RCLCPP_INFO(get_logger(), "gap: %d, gap90:%d, flw: %d", gap, gap90, front_left_wall);
+
+  // if(!judge && gap){
+  //   if(front_left_wall) skip = true;
+  //   else skip = false;
+  //   judge = true;
+  // }
+
+  // if(judge && !gap && !gap90 && front_left_wall){
+  //   skip = false;
+  //   judge = false;
+  // }
   if (ray >= ray_th) {
     RCLCPP_INFO(get_logger(), "ray num: %d", ray);
-    pub_cmd_vel(0.0, -M_PI / 4);
+    pub_cmd_vel(max_linear_vel / 4, -M_PI / 4);
     rclcpp::sleep_for(2000ms);
-  } else if ((sum / sum_i) < distance_to_turn && sum_i > 5) {
-    RCLCPP_INFO(get_logger(), "turn");
-    float k = (sum / sum_i) / distance_to_turn;
-    pub_cmd_vel(max_linear_vel * k, longitude_pid_control(sum / sum_i));
-  } else if (gap && front_left_wall) {
-    pub_cmd_vel(max_linear_vel, -0.1);
+  } else if ((gap || gap90) && front_left_wall) {
+    pub_cmd_vel(max_linear_vel, -0.0);
     RCLCPP_INFO(get_logger(), "skip");
+  // } else if (!(gap && gap90) && (sum / sum_i) < distance_to_turn && sum_i > 5) {
+  //   RCLCPP_INFO(get_logger(), "turn");
+  //   float k = (sum / sum_i) / distance_to_turn;
+  //   pub_cmd_vel(max_linear_vel * k, longitude_pid_control(sum / sum_i));
   } else {
     double angular_z = lateral_pid_control(lateral_mean);
     pub_cmd_vel(max_linear_vel, angular_z);
+    RCLCPP_INFO(get_logger(), "range: %lf, ang_z: %lf", lateral_mean, angular_z);
   }
 }
 
@@ -134,7 +150,9 @@ void WallTracking::init_variable() {
   gap2_deg = RAD2DEG(atan2(distance_from_wall,
                            distance_to_skip + distance_from_wall *
                                                   tan(DEG2RAD(90 - gap_deg))));
-  RCLCPP_INFO(get_logger(), "gap2: %d", gap2_deg);
+  skip = false;
+  judge = false;
+  // RCLCPP_INFO(get_logger(), "gap2: %lf", gap2_deg);
 }
 
 double WallTracking::lateral_pid_control(double input) {
