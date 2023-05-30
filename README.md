@@ -17,23 +17,23 @@ https://user-images.githubusercontent.com/91446273/225591825-b1945d4b-a7fb-4d5a-
 ### [Parameters](https://github.com/makotoyoshigoe/wall_tracking/blob/master/config/wall_tracking.param.yaml)
 - ~robot_name (string, default: "turtlebot3")
     - ロボットの名前
-- ~distance_from_wall (double, default: 0.4[m])
+- ~distance_from_wall (double, default: 0.7[m])
     - 左側の壁や物体との距離の目標値
-- ~distance_to_stop (double, default: 0.5[m])
+- ~distance_to_stop (double, default: 0.7[m])
     - 前方の物体との距離がこの値以下になると停止する
-- ~max_linear_vel (double, default: 0.22[m/s])
+- ~max_linear_vel (double, default: 0.25[m/s])
     - 並進速度の最大値
-- ~max_angular_vel (double, default: 2.84[rad/s])
+- ~max_angular_vel (double, default: 0.7[rad/s])
     - 角速度の最大値
-- ~min_angular_vel (double, default: -2.84[rad/s])
+- ~min_angular_vel (double, default: -0.7[rad/s])
     - 角速度の最小値
 - ~sampling_rate (double, default: 0.033[s])
     - LiDARのサンプリング周期
-- ~kp (double, default: 4.5)
+- ~kp (double, default: 12.0)
     - Pゲイン
-- ~ki (double, default: 0.005)
+- ~ki (double, default: 0.0)
     - Iゲイン
-- ~kd (double, default: 0.25)
+- ~kd (double, default: 0.0)
     - Dゲイン
 - ~start_deg_lateral (int, default: 69[deg])
     - サンプリングするレーザーの開始角度
@@ -41,9 +41,9 @@ https://user-images.githubusercontent.com/91446273/225591825-b1945d4b-a7fb-4d5a-
     - サンプリングするレーザーの終了角度
 - ~ray_th (int, default: 16)
     - {distance_to_stop}[m]以下になった前方のレーザーが{ray_th}本以上になると90[deg]旋回する
-- wheel_separation (double, default: 0.28[m])
+- ~wheel_separation (double, default: 0.28[m])
     - タイヤ間の距離
-- distance_to_skip (double, default: 1.0[m])
+- ~distance_to_skip (double, default: 1.0[m])
     - 隙間とみなす距離
 ## 動作環境
 - ROS2 Humble (Ubuntu 22.04.1 LTS)
