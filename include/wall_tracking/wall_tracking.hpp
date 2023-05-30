@@ -35,7 +35,6 @@ protected:
   double index2deg(int index);
   double index2rad(int index);
   void pub_cmd_vel(float linear_x, float anguler_z);
-  int max_index(std::vector<float> array, int start, int end);
 
 private:
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
