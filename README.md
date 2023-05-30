@@ -21,7 +21,7 @@ https://user-images.githubusercontent.com/91446273/225591825-b1945d4b-a7fb-4d5a-
     - 左側の壁や物体との距離の目標値
 - ~distance_to_stop (double, default: 0.5[m])
     - 前方の物体との距離がこの値以下になると停止する
-- ~max_linear_vel(double, default: 0.22[m/s])
+- ~max_linear_vel (double, default: 0.22[m/s])
     - 並進速度の最大値
 - ~max_angular_vel (double, default: 2.84[rad/s])
     - 角速度の最大値
@@ -35,6 +35,16 @@ https://user-images.githubusercontent.com/91446273/225591825-b1945d4b-a7fb-4d5a-
     - Iゲイン
 - ~kd (double, default: 0.25)
     - Dゲイン
+- ~start_deg_lateral (int, default: 69[deg])
+    - サンプリングするレーザーの開始角度
+- ~end_deg_lateral (int, default: 78[deg])
+    - サンプリングするレーザーの終了角度
+- ~ray_th (int, default: 16)
+    - {distance_to_stop}[m]以下になった前方のレーザーが{ray_th}本以上になると90[deg]旋回する
+- wheel_separation (double, default: 0.28[m])
+    - タイヤ間の距離
+- distance_to_skip (double, default: 1.0[m])
+    - 隙間とみなす距離
 ## 動作環境
 - ROS2 Humble (Ubuntu 22.04.1 LTS)
 
