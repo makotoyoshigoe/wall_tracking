@@ -39,9 +39,12 @@ void WallTracking::scan_callback(
   }
   double lateral_mean =
       ray_mean(msg->ranges, start_deg_lateral_, end_deg_lateral_);
-  bool gap_start = msg->ranges[deg2index(start_deg_lateral_)] * sin(DEG2RAD(start_deg_lateral_)) >
-             distance_from_wall_*1.1;
-  bool gap_end = msg->ranges[deg2index(end_deg_lateral_)] * sin(DEG2RAD(end_deg_lateral_)) > distance_from_wall_*1.1;
+  bool gap_start = msg->ranges[deg2index(start_deg_lateral_)] *
+                       sin(DEG2RAD(start_deg_lateral_)) >
+                   distance_from_wall_ * 1.1;
+  bool gap_end = msg->ranges[deg2index(end_deg_lateral_)] *
+                     sin(DEG2RAD(end_deg_lateral_)) >
+                 distance_from_wall_ * 1.1;
   bool front_left_wall =
       msg->ranges[deg2index(flw_deg_)] * sin(DEG2RAD(flw_deg_)) <=
       distance_from_wall_;
@@ -110,10 +113,10 @@ void WallTracking::init_cmd_vel_pub() {
 void WallTracking::init_variable() {
   ei_ = 0.0;
   cmd_vel_topic_name_ = robot_name_ + "/cmd_vel";
-  flw_deg_ = RAD2DEG(atan2(distance_from_wall_,
-                           distance_to_skip_ + distance_from_wall_ /
-                                                  tan(DEG2RAD(start_deg_lateral_))));
-  RCLCPP_INFO(get_logger(), "deg: %lf", flw_deg_);
+  flw_deg_ =
+      RAD2DEG(atan2(distance_from_wall_,
+                    distance_to_skip_ + distance_from_wall_ /
+                                            tan(DEG2RAD(start_deg_lateral_))));
 }
 
 double WallTracking::lateral_pid_control(double input) {
