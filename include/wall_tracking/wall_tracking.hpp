@@ -40,27 +40,24 @@ protected:
 private:
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
-  geometry_msgs::msg::Twist cmd_vel_msg;
-  std::string robot_name;
-  std::string cmd_vel_topic_name;
-  double distance_from_wall;
-  double distance_to_stop;
-  float max_linear_vel;
-  float max_angular_vel, min_angular_vel;
-  double sampling_rate;
-  float ei_, ei2_;
-  double kp, ki, kd;
-  double kp2, ki2, kd2;
-  int start_deg_lateral, end_deg_lateral;
-  float range_max;
-  float angle_increment_deg;
-  float angle_min_deg;
-  int ray_th;
-  float wheel_separation;
-  double distance_to_turn;
-  double distance_to_skip;
-  float gap_deg, gap2_deg;
-  bool judge, skip;
+  geometry_msgs::msg::Twist cmd_vel_msg_;
+  std::string robot_name_;
+  std::string cmd_vel_topic_name_;
+  double distance_from_wall_;
+  double distance_to_stop_;
+  float max_linear_vel_;
+  float max_angular_vel_, min_angular_vel_;
+  double sampling_rate_;
+  float ei_;
+  double kp_, ki_, kd_;
+  int start_deg_lateral_, end_deg_lateral_;
+  float range_max_;
+  float angle_increment_deg_;
+  float angle_min_deg_;
+  int ray_th_;
+  float wheel_separation_;
+  double distance_to_skip_;
+  double flw_deg_;
 };
 
 } // namespace WallTracking
