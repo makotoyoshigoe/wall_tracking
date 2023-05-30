@@ -131,8 +131,9 @@ double WallTracking::ray_mean(std::vector<float> array, int start_deg,
   for (int i = start_index; i <= end_index; ++i) {
     if (array[i] != INFINITY && array[i] != NAN) {
       sum += array[i] * sin(index2rad(i));
-    } else
+    } else {
       sum += range_max_;
+    }
     ++sum_i;
   }
   return sum / sum_i;
