@@ -6,7 +6,7 @@ https://user-images.githubusercontent.com/91446273/225591825-b1945d4b-a7fb-4d5a-
 
 # Nodes
 ## wall_tracking_node
-このノードはLiDARからのスキャンデータを受け取り、そのうちの69[deg]から78[deg]のデータを使用し、PID制御によってそれらの平均値が目標値になるようにロボットに速度指令を送るノードです。
+このノードはLiDARからのスキャンデータを受け取り、そのうちのサンプリングしたデータを使用し、PID制御によってそれらの平均値が目標値になるようにロボットに速度指令を送るノードです。
 ### Subscribed Topics
 - scan([sensor_msgs/msg/LaserScan](https://docs.ros2.org/foxy/api/sensor_msgs/msg/LaserScan.html))
     - LiDARのスキャンデータ
@@ -45,9 +45,10 @@ https://user-images.githubusercontent.com/91446273/225591825-b1945d4b-a7fb-4d5a-
     - タイヤ間の距離
 - ~distance_to_skip (double, default: 1.0[m])
     - 隙間とみなす距離
+## 実行方法
+```ros2 launch wall_tracking wall_tracking.launch.py```
 ## 動作環境
 - ROS2 Humble (Ubuntu 22.04.1 LTS)
 
 ## デモ動画（応用）
-
 https://user-images.githubusercontent.com/91446273/225596368-cbe41cf1-149f-4e4d-b7e6-2a2fa27e1b88.mp4
