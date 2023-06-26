@@ -1,8 +1,8 @@
 /**:
   ros__parameters:
-    robot_name: "turtlebot3"
+    cmd_vel_topic_name: "sim_cmd_vel"
     distance_from_wall: 0.7
-    distance_to_stop: 0.7
+    distance_to_stop: 0.9
     max_linear_vel: 0.25
     max_angular_vel: 0.7
     min_angular_vel: -0.7
@@ -15,3 +15,4 @@
     ray_th: 16
     wheel_separation: 0.28
     distance_to_skip: 1.0
+    covariance_th: 14.0
