@@ -40,6 +40,7 @@ protected:
   void scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
   void gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
   void odom_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg);
+  double ray_th_processing(std::vector<float> array, double start, double end);
 
 private:
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
@@ -58,7 +59,7 @@ private:
   float ei_;
   double kp_, ki_, kd_;
   int start_deg_lateral_, end_deg_lateral_;
-  float range_max_;
+  float range_max_, range_min_;
   float angle_increment_deg_;
   float angle_min_deg_;
   int ray_th_;

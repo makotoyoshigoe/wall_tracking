@@ -128,6 +128,7 @@ double WallTracking::index2rad(int index) {
 void WallTracking::scan_callback(
     sensor_msgs::msg::LaserScan::ConstSharedPtr msg) {
   range_max_ = msg->range_max;
+  range_min_ = msg->range_min;
   angle_increment_deg_ = RAD2DEG(msg->angle_increment);
   angle_min_deg_ = round(RAD2DEG(msg->angle_min));
   int start_index =
@@ -141,32 +142,9 @@ void WallTracking::scan_callback(
       ++fw_ray;
     }
   }
-  int start_deg = -5, end_deg = 5, open_place_ray = 0, ray_num = 0;
-  for(int i=deg2index(start_deg); i<=deg2index(end_deg); ++i){
-    float range = msg->ranges[i] * cos(index2rad(i));
-    if (range < msg->range_min || range > range_max_ * 0.8){
-      ++open_place_ray;
-    }
-    ++ray_num;
-  }
-  bool detect_open_place = open_place_ray / ray_num >= 1.0;
+  bool detect_open_place = ray_th_processing(msg->ranges, -5.0, 5.0) >= 0.8;
 
-  start_deg = -90;
-  end_deg = 90;
-  open_place_ray = 0; 
-  ray_num = 0;
-  for(int i=deg2index(start_deg); i<=deg2index(end_deg); ++i){
-    float range = msg->ranges[i] * cos(index2rad(i));
-    if (range < msg->range_min || range > range_max_ * 0.8){
-      ++open_place_ray;
-    }
-    ++ray_num;
-  }
-  RCLCPP_INFO(get_logger(), "open place ray: %d, ray num: %d", open_place_ray, ray_num);
-  RCLCPP_INFO(get_logger(), "start: %d, end: %d", start_deg, end_deg);
-  float aa = open_place_ray / ray_num;
-  bool open_place = open_place_ray / ray_num >= 0.95;
-  RCLCPP_INFO(get_logger(), "aa: %lf", aa);
+  bool open_place = ray_th_processing(msg->ranges, -90.0, 90.0) >= 0.95;
 
   double lateral_mean =
       ray_mean(msg->ranges, start_deg_lateral_, end_deg_lateral_);
@@ -179,8 +157,6 @@ void WallTracking::scan_callback(
   bool front_left_wall =
       msg->ranges[deg2index(flw_deg_)] * sin(DEG2RAD(flw_deg_)) <=
       distance_from_wall_;
-  
-
   if (fw_ray >= ray_th_) {
     RCLCPP_INFO(get_logger(), "fw_ray num: %d", fw_ray);
     pub_cmd_vel(max_linear_vel_ / 4, -M_PI / 4);
@@ -204,7 +180,6 @@ void WallTracking::scan_callback(
   }
   RCLCPP_INFO(get_logger(), "multipath: %d", open_place_);
 }
-
 void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg){
   nav_sat_fix_msg_ = *msg;
   if(msg->position_covariance[0] > covariance_th_){
@@ -217,4 +192,17 @@ void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg
 void WallTracking::odom_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg){
   odom_msg_ = *msg;
 }
+
+double WallTracking::ray_th_processing(std::vector<float> array, double start, double end){
+  int open_place_ray = 0, ray_num = 0;
+  for(int i=deg2index(start); i<=deg2index(end); ++i){
+    float range = array[i] * cos(index2rad(i));
+    if (range < range_min_ || range > range_max_ * 0.8){
+      ++open_place_ray;
+    }
+    ++ray_num;
+  }
+  return open_place_ray / ray_num;
+}
+
 } // namespace WallTracking
