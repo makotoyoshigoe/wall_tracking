@@ -11,6 +11,9 @@
 #include <rclcpp/qos.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
+#include <sensor_msgs/msg/nav_sat_fix.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+// #include <tf2_msgs/msg/tf_message.hpp>
 #include <string>
 #include <vector>
 
@@ -21,11 +24,10 @@ public:
   WallTracking();
 
 protected:
-  void scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
   void set_param();
   void get_param();
-  void init_scan_sub();
-  void init_cmd_vel_pub();
+  void init_sub();
+  void init_pub();
   void init_variable();
   double lateral_pid_control(double input);
   double longitude_pid_control(double input);
@@ -35,12 +37,18 @@ protected:
   double index2deg(int index);
   double index2rad(int index);
   void pub_cmd_vel(float linear_x, float anguler_z);
+  void scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
+  void gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
+  void odom_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg);
 
 private:
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
+  rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gnss_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   geometry_msgs::msg::Twist cmd_vel_msg_;
-  std::string robot_name_;
+  sensor_msgs::msg::NavSatFix nav_sat_fix_msg_;
+  nav_msgs::msg::Odometry odom_msg_;
   std::string cmd_vel_topic_name_;
   double distance_from_wall_;
   double distance_to_stop_;
@@ -57,6 +65,8 @@ private:
   float wheel_separation_;
   double distance_to_skip_;
   double flw_deg_;
+  double covariance_th_;
+  bool open_place_;
 };
 
 } // namespace WallTracking
