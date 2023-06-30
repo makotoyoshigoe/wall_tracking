@@ -158,27 +158,27 @@ void WallTracking::scan_callback(
       msg->ranges[deg2index(flw_deg_)] * sin(DEG2RAD(flw_deg_)) <=
       distance_from_wall_;
   if (fw_ray >= ray_th_) {
-    RCLCPP_INFO(get_logger(), "fw_ray num: %d", fw_ray);
+    // RCLCPP_INFO(get_logger(), "fw_ray num: %d", fw_ray);
     pub_cmd_vel(max_linear_vel_ / 4, -M_PI / 4);
     rclcpp::sleep_for(2000ms);
   } else if(open_place){
     pub_cmd_vel(0.0, 0.0);
-    RCLCPP_INFO(get_logger(), "open place");
+    // RCLCPP_INFO(get_logger(), "open place");
   } else if(detect_open_place){
-    RCLCPP_INFO(get_logger(), "detect open place");
+    // RCLCPP_INFO(get_logger(), "detect open place");
     pub_cmd_vel(max_linear_vel_, 0.0);
   }else if ((gap_start || gap_end) && front_left_wall) {
     pub_cmd_vel(max_linear_vel_, 0.0);
-    RCLCPP_INFO(get_logger(), "skip");
+    // RCLCPP_INFO(get_logger(), "skip");
   } else if(open_place){
     pub_cmd_vel(0.0, 0.0);
-    RCLCPP_INFO(get_logger(), "open place");
+    // RCLCPP_INFO(get_logger(), "open place");
   }else {
     double angular_z = lateral_pid_control(lateral_mean);
     pub_cmd_vel(max_linear_vel_, angular_z);
-    RCLCPP_INFO(get_logger(), "range: %lf", lateral_mean);
+    // RCLCPP_INFO(get_logger(), "range: %lf", lateral_mean);
   }
-  RCLCPP_INFO(get_logger(), "multipath: %d", open_place_);
+  // RCLCPP_INFO(get_logger(), "multipath: %d", open_place_);
 }
 void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg){
   nav_sat_fix_msg_ = *msg;
@@ -191,6 +191,10 @@ void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg
 
 void WallTracking::odom_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg){
   odom_msg_ = *msg;
+  geometry_msgs::msg::Quaternion q = msg->pose.pose.orientation;
+  double yaw = quaternion2euler_yaw(q);
+  // RCLCPP_INFO(get_logger(), "x, y, z, w: %lf, %lf, %lf, %lf", q.x, q.y, q.z, q.w);
+  RCLCPP_INFO(get_logger(), "euler Z: %lf", yaw);
 }
 
 double WallTracking::ray_th_processing(std::vector<float> array, double start, double end){
@@ -205,4 +209,14 @@ double WallTracking::ray_th_processing(std::vector<float> array, double start, d
   return open_place_ray / ray_num;
 }
 
+double WallTracking::quaternion2euler_yaw(geometry_msgs::msg::Quaternion msg){
+  double euler[3];
+  tf2::Quaternion q(
+    msg.x, msg.y, msg.z, msg.w
+  );
+  tf2::Matrix3x3 rpy(q);
+  double roll, pitch, yaw;
+  rpy.getRPY(roll, pitch, yaw);
+  return RAD2DEG(yaw);
+}
 } // namespace WallTracking

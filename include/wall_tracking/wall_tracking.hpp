@@ -6,6 +6,7 @@
 
 #define DEG2RAD(deg) ((deg)*M_PI/180)
 #define RAD2DEG(rad) ((rad)*180/M_PI)
+#define SQUARE(n) (n*n)
 
 #include <geometry_msgs/msg/twist.hpp>
 #include <rclcpp/qos.hpp>
@@ -13,9 +14,11 @@
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <nav_msgs/msg/odometry.hpp>
-// #include <tf2_msgs/msg/tf_message.hpp>
 #include <string>
 #include <vector>
+#include <tf2/convert.h>
+// #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 
 namespace WallTracking {
 
@@ -41,6 +44,7 @@ protected:
   void gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
   void odom_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg);
   double ray_th_processing(std::vector<float> array, double start, double end);
+  double quaternion2euler_yaw(geometry_msgs::msg::Quaternion msg);
 
 private:
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
@@ -68,6 +72,7 @@ private:
   double flw_deg_;
   double covariance_th_;
   bool open_place_;
+
 };
 
 } // namespace WallTracking
