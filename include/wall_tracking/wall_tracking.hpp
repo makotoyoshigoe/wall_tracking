@@ -34,7 +34,7 @@ protected:
   void init_variable();
   double lateral_pid_control(double input);
   double longitude_pid_control(double input);
-  double ray_mean(std::vector<float> array, int start_deg,
+  float ray_mean(std::vector<float> array, int start_deg,
                                  int end_deg);
   int deg2index(int deg);
   double index2deg(int index);
@@ -45,7 +45,8 @@ protected:
   void odom_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg);
   double ray_th_processing(std::vector<float> array, double start, double end);
   double quaternion2euler_yaw(geometry_msgs::msg::Quaternion msg);
-
+  bool noise(float data);
+  float search_max(std::vector<float> array);
 private:
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
