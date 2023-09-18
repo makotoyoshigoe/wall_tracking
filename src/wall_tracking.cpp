@@ -37,6 +37,7 @@ void WallTracking::set_param() {
   declare_parameter("distance_to_skip", 0.0);
   declare_parameter("cmd_vel_topic_name", "");
   declare_parameter("covariance_th", 0.0);
+  declare_parameter("open_place_distance", 0.0);
 }
 
 void WallTracking::get_param() {
@@ -56,6 +57,7 @@ void WallTracking::get_param() {
   distance_to_skip_ = get_parameter("distance_to_skip").as_double();
   cmd_vel_topic_name_ = get_parameter("cmd_vel_topic_name").as_string();
   covariance_th_ = get_parameter("covariance_th").as_double();
+  open_place_distance_ = get_parameter("open_place_distance").as_double();
 }
 
 void WallTracking::init_sub() {
@@ -81,6 +83,7 @@ void WallTracking::init_variable() {
       RAD2DEG(atan2(distance_from_wall_,
                     distance_to_skip_ + distance_from_wall_ /
                                             tan(DEG2RAD(start_deg_lateral_))));
+  open_place_ = false;
 }
 
 double WallTracking::lateral_pid_control(double input) {
@@ -142,9 +145,9 @@ void WallTracking::scan_callback(
       ++fw_ray;
     }
   }
-  bool detect_open_place = ray_th_processing(msg->ranges, -5.0, 5.0) >= 0.7;
+  bool detect_open_place = ray_th_processing(msg->ranges, -15.0, 15.0) >= 0.7;
 
-  bool open_place = ray_th_processing(msg->ranges, -100.0, 0.0) >= 0.7 && ray_th_processing(msg->ranges, 0.0, 100.0) >= 0.7;
+  bool open_place = ray_th_processing(msg->ranges, -135.0, 0.0) >= 0.7 && ray_th_processing(msg->ranges, 0.0, 135.0) >= 0.7;
 
   double lateral_mean =
       ray_mean(msg->ranges, start_deg_lateral_, end_deg_lateral_);
@@ -160,46 +163,37 @@ void WallTracking::scan_callback(
   bool front_left_wall_longitude = msg->ranges[deg2index(flw_deg_)] * cos(DEG2RAD(flw_deg_)) <=
       distance_to_skip_;
   bool front_left_wall = msg->ranges[deg2index(flw_deg_)] <= 1.87;
-  // RCLCPP_INFO(get_logger(), "deg: %lf, lw: %lf, long: %lf", flw_deg_, msg->ranges[deg2index(flw_deg_)], msg->ranges[deg2index(flw_deg_)] * cos(DEG2RAD(flw_deg_)));
-  if (fw_ray >= ray_th_) {
-    RCLCPP_INFO(get_logger(), "fw_ray num: %d", fw_ray);
-    pub_cmd_vel(max_linear_vel_ / 4, -M_PI / 6);
-    rclcpp::sleep_for(2000ms);
-  } else if(open_place){
-    pub_cmd_vel(0.0, 0.0);
-    rclcpp::sleep_for(2000ms);
-    RCLCPP_INFO(get_logger(), "open place");
-  } else if(detect_open_place){
-    RCLCPP_INFO(get_logger(), "detect open place");
-    std::vector<float> direction = {
-      ray_mean(msg->ranges, -15, -5), 
-      ray_mean(msg->ranges, -5, 5),
-      ray_mean(msg->ranges, 5, 15)
-    };
-    double max = search_max(direction);
-    double ang_vel;
-    RCLCPP_INFO(get_logger(), "max: %lf, 1: %lf, 2: %lf, 3: %lf", max, direction[0], direction[1], direction[2]);
-    if(max == direction[1]) ang_vel = 0.0;
-    else if(max == direction[0]) ang_vel = -0.17;
-    else if(max == direction[2]) ang_vel = 0.17;
-    pub_cmd_vel(max_linear_vel_, 0.0);
-    // RCLCPP_INFO(get_logger(), "ang vel: %lf", ang_vel);
-  }else if ((gap_start || gap_end) && front_left_wall && !noise(msg->ranges[deg2index(flw_deg_)])) {
-    pub_cmd_vel(max_linear_vel_, 0.0);
-    RCLCPP_INFO(get_logger(), "skip");
-  } else if(open_place){
-    pub_cmd_vel(0.0, 0.0);
-    RCLCPP_INFO(get_logger(), "open place");
-  }else {
-    double angular_z = lateral_pid_control(lateral_mean);
-    pub_cmd_vel(max_linear_vel_, angular_z);
-    RCLCPP_INFO(get_logger(), "range: %lf", lateral_mean);
+  if(!open_place_){
+    if (fw_ray >= ray_th_) {
+      RCLCPP_INFO(get_logger(), "fw_ray num: %d", fw_ray);
+      pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-40));
+      rclcpp::sleep_for(2000ms);
+    } else if(open_place){
+      RCLCPP_INFO(get_logger(), "open place linear");
+      pub_cmd_vel(max_linear_vel_, 0.0);
+      rclcpp::sleep_for(5000ms);
+      pub_cmd_vel(0.0, 0.0);
+      open_place_ = true;
+      RCLCPP_INFO(get_logger(), "open place");
+    } else if(detect_open_place){
+      RCLCPP_INFO(get_logger(), "detect open place");
+      pub_cmd_vel(max_linear_vel_, 0.0);
+    }else if ((gap_start || gap_end) && front_left_wall && !noise(msg->ranges[deg2index(flw_deg_)])) {
+      pub_cmd_vel(max_linear_vel_, 0.0);
+      RCLCPP_INFO(get_logger(), "skip");
+    }else {
+      double angular_z = lateral_pid_control(lateral_mean);
+      pub_cmd_vel(max_linear_vel_, angular_z);
+      RCLCPP_INFO(get_logger(), "range: %lf", lateral_mean);
+    }
   }
+  bool not_open_place = ray_th_processing(msg->ranges, -135.0, 0.0) <= 0.2 && ray_th_processing(msg->ranges, 0.0, 135.0) <= 0.2;
+  if(not_open_place) open_place_ = false;
 }
 
 void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg){
   nav_sat_fix_msg_ = *msg;
-  open_place_ = msg->position_covariance[0] > covariance_th_;
+  // open_place_ = msg->position_covariance[0] > covariance_th_;
 }
 
 void WallTracking::odom_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg){
@@ -213,14 +207,12 @@ double WallTracking::ray_th_processing(std::vector<float> array, double start, d
   double open_place_ray = 0, ray_num = 0;
   for(int i=deg2index(start); i<=deg2index(end); ++i){
     float range = array[i] * cos(index2rad(i));
-    if (range < range_min_ || range > range_max_ * 0.5){
+    if (range < range_min_ || range > open_place_distance_){
       ++open_place_ray;
     }
     ++ray_num;
   }
-  double per = open_place_ray / ray_num;
-  // RCLCPP_INFO(get_logger(), "o: %lf, r: %lf, o/r: %lf", open_place_ray, ray_num, per);
-  return per;
+  return open_place_ray / ray_num;
 }
 
 double WallTracking::quaternion2euler_yaw(geometry_msgs::msg::Quaternion msg){

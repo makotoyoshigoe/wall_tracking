@@ -73,7 +73,8 @@ private:
   double flw_deg_;
   double covariance_th_;
   bool open_place_;
-
+  double open_place_distance_;
+  bool right_too_close, left_too_close;
 };
 
 } // namespace WallTracking
