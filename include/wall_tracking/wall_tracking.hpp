@@ -11,6 +11,7 @@
 #include <geometry_msgs/msg/twist.hpp>
 #include <rclcpp/qos.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <nav_msgs/msg/odometry.hpp>
@@ -19,6 +20,10 @@
 #include <tf2/convert.h>
 // #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Matrix3x3.h>
+#include "wall_tracking_action/action/wall_tracking.hpp"
+
+using WallTrackingAction = wall_tracking_action::action::WallTracking;
+using GoalHandleWallTracking = rclcpp_action::ServerGoalHandle<WallTrackingAction>;
 
 namespace WallTracking {
 
@@ -31,6 +36,7 @@ protected:
   void get_param();
   void init_sub();
   void init_pub();
+  void init_action();
   void init_variable();
   double lateral_pid_control(double input);
   double longitude_pid_control(double input);
@@ -47,15 +53,37 @@ protected:
   double quaternion2euler_yaw(geometry_msgs::msg::Quaternion msg);
   bool noise(float data);
   float search_max(std::vector<float> array);
+
+  rclcpp_action::GoalResponse handle_goal(
+    const rclcpp_action::GoalUUID & uuid, 
+    std::shared_ptr<const WallTrackingAction::Goal> goal
+  );
+
+  rclcpp_action::CancelResponse handle_cancel(
+    const std::shared_ptr<GoalHandleWallTracking> goal_handle
+  );
+
+  void handle_accepted(
+    const std::shared_ptr<GoalHandleWallTracking> goal_handle
+  );
+
+  void execute(
+    const std::shared_ptr<GoalHandleWallTracking> goal_handle
+  );
+
 private:
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
   rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gnss_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+
+  rclcpp_action::Server<WallTrackingAction>::SharedPtr wall_tracking_action_srv_;
+
   geometry_msgs::msg::Twist cmd_vel_msg_;
   sensor_msgs::msg::NavSatFix nav_sat_fix_msg_;
   nav_msgs::msg::Odometry odom_msg_;
   std::string cmd_vel_topic_name_;
+
   double distance_from_wall_;
   double distance_to_stop_;
   float max_linear_vel_;

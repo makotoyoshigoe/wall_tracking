@@ -8,8 +8,11 @@
 #include <cmath>
 #include <iostream>
 #include <rclcpp/rclcpp.hpp>
+#include <thread>
+#include <memory>
 
 using namespace std::chrono_literals;
+
 
 namespace WallTracking {
 WallTracking::WallTracking() : Node("wall_tracking_node") {
@@ -18,6 +21,7 @@ WallTracking::WallTracking() : Node("wall_tracking_node") {
   init_variable();
   init_sub();
   init_pub();
+  init_action();
 }
 
 void WallTracking::set_param() {
@@ -75,6 +79,16 @@ void WallTracking::init_sub() {
 void WallTracking::init_pub() {
   cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
       cmd_vel_topic_name_, rclcpp::QoS(10));
+}
+
+void WallTracking::init_action() {
+  wall_tracking_action_srv_ = rclcpp_action::create_server<WallTrackingAction>(
+    this, 
+    "wall_tracking", 
+    std::bind(&WallTracking::handle_goal, this, std::placeholders::_1, std::placeholders::_2), 
+    std::bind(&WallTracking::handle_cancel, this, std::placeholders::_1), 
+    std::bind(&WallTracking::handle_accepted, this, std::placeholders::_1)
+  );
 }
 
 void WallTracking::init_variable() {
@@ -238,5 +252,52 @@ float WallTracking::search_max(std::vector<float> array){
     }
   }
   return max;
+}
+
+rclcpp_action::GoalResponse WallTracking::handle_goal(
+  const rclcpp_action::GoalUUID & uuid, 
+  std::shared_ptr<const WallTrackingAction::Goal> goal
+){
+  return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+}
+
+rclcpp_action::CancelResponse WallTracking::handle_cancel(
+  const std::shared_ptr<GoalHandleWallTracking> goal_handle
+){
+    RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
+    (void)goal_handle;
+    return rclcpp_action::CancelResponse::ACCEPT;
+}
+
+void WallTracking::handle_accepted(
+  const std::shared_ptr<GoalHandleWallTracking> goal_handle
+){
+  std::thread{std::bind(&WallTracking::execute, this, std::placeholders::_1), goal_handle}.detach();
+}
+
+void WallTracking::execute(
+  const std::shared_ptr<GoalHandleWallTracking> goal_handle
+){
+  RCLCPP_INFO(this->get_logger(), "EXECUTE");
+  const auto goal = goal_handle->get_goal();
+  auto feedback = std::make_shared<WallTrackingAction::Feedback>();
+  auto result = std::make_shared<WallTrackingAction::Result>();
+  rclcpp::Rate loop_rate(1);
+  for(int i=0; i<50; ++i){
+    if(goal_handle->is_canceling()){
+      result->get = false;
+      goal_handle->canceled(result);
+      RCLCPP_INFO(this->get_logger(), "Goal Canceled");
+      return;
+    }
+    RCLCPP_INFO(this->get_logger(), "count: %d", i);
+    loop_rate.sleep();
+  }
+
+  if(rclcpp::ok()){
+    result->get = true;
+    goal_handle->succeed(result);
+    RCLCPP_INFO(this->get_logger(), "Goal Succeded");
+  }
 }
 } // namespace WallTracking
