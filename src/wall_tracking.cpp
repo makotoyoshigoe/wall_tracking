@@ -16,55 +16,11 @@ WallTracking::WallTracking() : Node("wall_tracking_node") {
   set_param();
   get_param();
   init_variable();
-  init_scan_sub();
-  init_cmd_vel_pub();
-}
-
-void WallTracking::scan_callback(
-    sensor_msgs::msg::LaserScan::ConstSharedPtr msg) {
-  range_max_ = msg->range_max;
-  angle_increment_deg_ = RAD2DEG(msg->angle_increment);
-  angle_min_deg_ = round(RAD2DEG(msg->angle_min));
-
-  int start_index =
-      deg2index(RAD2DEG(atan2f(-wheel_separation_ / 2, distance_to_stop_)));
-  int end_index = -start_index;
-  int ray = 0;
-  float sum = 0, sum_i = 0;
-  for (int i = start_index; i <= end_index; ++i) {
-    float range = msg->ranges[i] * cos(index2rad(i));
-    if (range > msg->range_min && range < distance_to_stop_) {
-      ++ray;
-    }
-  }
-  double lateral_mean =
-      ray_mean(msg->ranges, start_deg_lateral_, end_deg_lateral_);
-  bool gap_start = msg->ranges[deg2index(start_deg_lateral_)] *
-                       sin(DEG2RAD(start_deg_lateral_)) >
-                   distance_from_wall_ * 1.1;
-  bool gap_end = msg->ranges[deg2index(end_deg_lateral_)] *
-                     sin(DEG2RAD(end_deg_lateral_)) >
-                 distance_from_wall_ * 1.1;
-  bool front_left_wall =
-      msg->ranges[deg2index(flw_deg_)] * sin(DEG2RAD(flw_deg_)) <=
-      distance_from_wall_;
-
-  if (ray >= ray_th_) {
-    RCLCPP_INFO(get_logger(), "ray num: %d", ray);
-    pub_cmd_vel(max_linear_vel_ / 4, -M_PI / 4);
-    rclcpp::sleep_for(2000ms);
-  } else if ((gap_start || gap_end) && front_left_wall) {
-    pub_cmd_vel(max_linear_vel_, 0.0);
-    RCLCPP_INFO(get_logger(), "skip");
-  } else {
-    double angular_z = lateral_pid_control(lateral_mean);
-    pub_cmd_vel(max_linear_vel_, angular_z);
-    RCLCPP_INFO(get_logger(), "range: %lf", lateral_mean);
-  }
+  init_sub();
+  init_pub();
 }
 
 void WallTracking::set_param() {
-  declare_parameter("robot_name", "");
   declare_parameter("max_linear_vel", 0.0);
   declare_parameter("max_angular_vel", 0.0);
   declare_parameter("min_angular_vel", 0.0);
@@ -79,10 +35,12 @@ void WallTracking::set_param() {
   declare_parameter("ray_th", 0);
   declare_parameter("wheel_separation", 0.0);
   declare_parameter("distance_to_skip", 0.0);
+  declare_parameter("cmd_vel_topic_name", "");
+  declare_parameter("covariance_th", 0.0);
+  declare_parameter("open_place_distance", 0.0);
 }
 
 void WallTracking::get_param() {
-  robot_name_ = get_parameter("robot_name").as_string();
   max_linear_vel_ = get_parameter("max_linear_vel").as_double();
   max_angular_vel_ = get_parameter("max_angular_vel").as_double();
   min_angular_vel_ = get_parameter("min_angular_vel").as_double();
@@ -97,26 +55,35 @@ void WallTracking::get_param() {
   ray_th_ = get_parameter("ray_th").as_int();
   wheel_separation_ = get_parameter("wheel_separation").as_double();
   distance_to_skip_ = get_parameter("distance_to_skip").as_double();
+  cmd_vel_topic_name_ = get_parameter("cmd_vel_topic_name").as_string();
+  covariance_th_ = get_parameter("covariance_th").as_double();
+  open_place_distance_ = get_parameter("open_place_distance").as_double();
 }
 
-void WallTracking::init_scan_sub() {
+void WallTracking::init_sub() {
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
       "scan", rclcpp::QoS(10),
       std::bind(&WallTracking::scan_callback, this, std::placeholders::_1));
+  gnss_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
+      "gnss/fix", rclcpp::QoS(10),
+      std::bind(&WallTracking::gnss_callback, this, std::placeholders::_1));
+  odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+      "odom", rclcpp::QoS(10),
+      std::bind(&WallTracking::odom_callback, this, std::placeholders::_1));
 }
 
-void WallTracking::init_cmd_vel_pub() {
+void WallTracking::init_pub() {
   cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
       cmd_vel_topic_name_, rclcpp::QoS(10));
 }
 
 void WallTracking::init_variable() {
   ei_ = 0.0;
-  cmd_vel_topic_name_ = robot_name_ + "/cmd_vel";
   flw_deg_ =
       RAD2DEG(atan2(distance_from_wall_,
                     distance_to_skip_ + distance_from_wall_ /
                                             tan(DEG2RAD(start_deg_lateral_))));
+  open_place_ = false;
 }
 
 double WallTracking::lateral_pid_control(double input) {
@@ -126,7 +93,7 @@ double WallTracking::lateral_pid_control(double input) {
   return e * kp_ + ei_ * ki_ + ed * kd_;
 }
 
-double WallTracking::ray_mean(std::vector<float> array, int start_deg,
+float WallTracking::ray_mean(std::vector<float> array, int start_deg,
                               int end_deg) {
   float sum = 0, sum_i = 0;
   int start_index = deg2index(start_deg);
@@ -159,5 +126,117 @@ double WallTracking::index2deg(int index) {
 
 double WallTracking::index2rad(int index) {
   return index2deg(index) * M_PI / 180;
+}
+
+void WallTracking::scan_callback(
+    sensor_msgs::msg::LaserScan::ConstSharedPtr msg) {
+  range_max_ = msg->range_max;
+  range_min_ = msg->range_min;
+  angle_increment_deg_ = RAD2DEG(msg->angle_increment);
+  angle_min_deg_ = round(RAD2DEG(msg->angle_min));
+  int start_index =
+      deg2index(RAD2DEG(atan2f(-wheel_separation_ / 2, distance_to_stop_)));
+  int end_index = deg2index(RAD2DEG(atan2f(wheel_separation_ / 2, distance_to_stop_)));
+  int fw_ray = 0;
+  float sum = 0, sum_i = 0;
+  for (int i = start_index; i <= end_index; ++i) {
+    float range = msg->ranges[i] * cos(index2rad(i));
+    if (range > msg->range_min && range < distance_to_stop_) {
+      ++fw_ray;
+    }
+  }
+  bool detect_open_place = ray_th_processing(msg->ranges, -15.0, 15.0) >= 0.7;
+
+  bool open_place = ray_th_processing(msg->ranges, -135.0, 0.0) >= 0.7 && ray_th_processing(msg->ranges, 0.0, 135.0) >= 0.7;
+
+  double lateral_mean =
+      ray_mean(msg->ranges, start_deg_lateral_, end_deg_lateral_);
+  bool gap_start = msg->ranges[deg2index(start_deg_lateral_)] *
+                       sin(DEG2RAD(start_deg_lateral_)) >
+                   distance_from_wall_ * 2.0;
+  bool gap_end = msg->ranges[deg2index(90)] *
+                     sin(DEG2RAD(90)) >
+                 distance_from_wall_ * 2.0;
+  bool front_left_wall_lateral =
+      msg->ranges[deg2index(flw_deg_)] * sin(DEG2RAD(flw_deg_)) <=
+      distance_from_wall_;
+  bool front_left_wall_longitude = msg->ranges[deg2index(flw_deg_)] * cos(DEG2RAD(flw_deg_)) <=
+      distance_to_skip_;
+  bool front_left_wall = msg->ranges[deg2index(flw_deg_)] <= 1.87;
+  if(!open_place_){
+    if (fw_ray >= ray_th_) {
+      RCLCPP_INFO(get_logger(), "fw_ray num: %d", fw_ray);
+      pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-40));
+      rclcpp::sleep_for(2000ms);
+    } else if(open_place){
+      RCLCPP_INFO(get_logger(), "open place linear");
+      pub_cmd_vel(max_linear_vel_, 0.0);
+      rclcpp::sleep_for(5000ms);
+      pub_cmd_vel(0.0, 0.0);
+      open_place_ = true;
+      RCLCPP_INFO(get_logger(), "open place");
+    } else if(detect_open_place){
+      RCLCPP_INFO(get_logger(), "detect open place");
+      pub_cmd_vel(max_linear_vel_, 0.0);
+    }else if ((gap_start || gap_end) && front_left_wall && !noise(msg->ranges[deg2index(flw_deg_)])) {
+      pub_cmd_vel(max_linear_vel_, 0.0);
+      RCLCPP_INFO(get_logger(), "skip");
+    }else {
+      double angular_z = lateral_pid_control(lateral_mean);
+      pub_cmd_vel(max_linear_vel_, angular_z);
+      RCLCPP_INFO(get_logger(), "range: %lf", lateral_mean);
+    }
+  }
+  bool not_open_place = ray_th_processing(msg->ranges, -135.0, 0.0) <= 0.2 && ray_th_processing(msg->ranges, 0.0, 135.0) <= 0.2;
+  if(not_open_place) open_place_ = false;
+}
+
+void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg){
+  nav_sat_fix_msg_ = *msg;
+  // open_place_ = msg->position_covariance[0] > covariance_th_;
+}
+
+void WallTracking::odom_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg){
+  odom_msg_ = *msg;
+  geometry_msgs::msg::Quaternion q = msg->pose.pose.orientation;
+  double yaw = quaternion2euler_yaw(q);
+  // RCLCPP_INFO(get_logger(), "euler Z: %lf", yaw);
+}
+
+double WallTracking::ray_th_processing(std::vector<float> array, double start, double end){
+  double open_place_ray = 0, ray_num = 0;
+  for(int i=deg2index(start); i<=deg2index(end); ++i){
+    float range = array[i] * cos(index2rad(i));
+    if (range < range_min_ || range > open_place_distance_){
+      ++open_place_ray;
+    }
+    ++ray_num;
+  }
+  return open_place_ray / ray_num;
+}
+
+double WallTracking::quaternion2euler_yaw(geometry_msgs::msg::Quaternion msg){
+  tf2::Quaternion q(
+    msg.x, msg.y, msg.z, msg.w
+  );
+  tf2::Matrix3x3 rpy(q);
+  double roll, pitch, yaw;
+  rpy.getRPY(roll, pitch, yaw);
+  return RAD2DEG(yaw);
+}
+
+bool WallTracking::noise(float data){
+  if(data < range_min_) return true;
+  return false;
+}
+
+float WallTracking::search_max(std::vector<float> array){
+  double max;
+  for(int i=0; i<array.size(); ++i){
+    for(int j=i+1; j<array.size(); ++j){
+      max = std::max(array[i], array[j]);
+    }
+  }
+  return max;
 }
 } // namespace WallTracking
