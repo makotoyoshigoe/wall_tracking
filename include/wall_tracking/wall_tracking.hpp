@@ -40,7 +40,7 @@ protected:
   void init_variable();
   double lateral_pid_control(double input);
   double longitude_pid_control(double input);
-  float ray_mean(std::vector<float> array, int start_deg,
+  float ray_mean(std::vector<double> array, int start_deg,
                                  int end_deg);
   int deg2index(int deg);
   double index2deg(int index);
@@ -49,10 +49,11 @@ protected:
   void scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
   void gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
   void odom_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg);
-  double ray_th_processing(std::vector<float> array, double start, double end);
+  double ray_th_processing(std::vector<double> array, double start, double end);
   double quaternion2euler_yaw(geometry_msgs::msg::Quaternion msg);
   bool noise(float data);
-  float search_max(std::vector<float> array);
+  float search_max(std::vector<double> array);
+  void wallTracking();
 
   rclcpp_action::GoalResponse handle_goal(
     const rclcpp_action::GoalUUID & uuid, 
@@ -102,7 +103,7 @@ private:
   double covariance_th_;
   bool open_place_;
   double open_place_distance_;
-  bool right_too_close, left_too_close;
+  std::vector<double> ranges_;
 };
 
 } // namespace WallTracking
