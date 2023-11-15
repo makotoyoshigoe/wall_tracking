@@ -209,12 +209,15 @@ void WallTracking::wallTracking()
   int fw_ray = 0;
   float sum = 0, sum_i = 0;
   for (int i = start_index; i <= end_index; ++i) {
-    if(noise(ranges_[i])) continue;
+    // if(noise(ranges_[i])) continue;
+    // float range = ranges_[i] * cos(index2rad(i));
+    // if (range > range_min_ && range < distance_to_stop_) {
+    //   ++fw_ray;
+    // }
     float range = ranges_[i] * cos(index2rad(i));
-    if (range > range_min_ && range < distance_to_stop_) {
-      ++fw_ray;
-    }
+    fw_ray += (range > range_min_ && range < distance_to_stop_);
   }
+
   bool detect_open_place = ray_th_processing(ranges_, -15.0, 15.0) >= 0.7;
 
   bool open_place = ray_th_processing(ranges_, -135.0, 0.0) >= 0.7 && ray_th_processing(ranges_, 0.0, 135.0) >= 0.7;
