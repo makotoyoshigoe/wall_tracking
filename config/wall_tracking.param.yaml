@@ -16,4 +16,4 @@
     wheel_separation: 0.28
     distance_to_skip: 1.0
     covariance_th: 14.0
-    open_place_distance: 30.0
+    open_place_distance: 20.0

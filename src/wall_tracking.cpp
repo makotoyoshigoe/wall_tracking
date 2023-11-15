@@ -218,7 +218,7 @@ void WallTracking::wallTracking()
     fw_ray += (range > range_min_ && range < distance_to_stop_);
   }
 
-  bool detect_open_place = ray_th_processing(ranges_, -15.0, 15.0) >= 0.7;
+  bool detect_open_place = ray_th_processing(ranges_, -5.0, 5.0) >= 0.7;
 
   bool open_place = ray_th_processing(ranges_, -135.0, 0.0) >= 0.7 && ray_th_processing(ranges_, 0.0, 135.0) >= 0.7;
 
