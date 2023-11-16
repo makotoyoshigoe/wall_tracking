@@ -114,7 +114,7 @@ float WallTracking::ray_mean(std::vector<double> array, int start_deg,
   int end_index = deg2index(end_deg);
   for (int i = start_index; i <= end_index; ++i) {
     if (array[i] != INFINITY && array[i] != NAN) {
-      sum += array[i] * sin(index2rad(i));
+      sum += array[i] * fabsf(sin(index2rad(i)));
     } else {
       sum += range_max_;
     }
@@ -168,7 +168,7 @@ void WallTracking::odom_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg){
 double WallTracking::ray_th_processing(std::vector<double> array, double start, double end){
   double open_place_ray = 0, ray_num = 0;
   for(int i=deg2index(start); i<=deg2index(end); ++i){
-    float range = array[i] * cos(index2rad(i));
+    float range = array[i] * fabsf(cos(index2rad(i)));
     if (range < range_min_ || range > open_place_distance_){
       ++open_place_ray;
     }
