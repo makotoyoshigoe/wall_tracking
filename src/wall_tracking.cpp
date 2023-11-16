@@ -71,9 +71,6 @@ void WallTracking::init_sub() {
   gnss_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
       "gnss/fix", rclcpp::QoS(10),
       std::bind(&WallTracking::gnss_callback, this, std::placeholders::_1));
-  odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-      "odom", rclcpp::QoS(10),
-      std::bind(&WallTracking::odom_callback, this, std::placeholders::_1));
 }
 
 void WallTracking::init_pub() {
@@ -149,20 +146,10 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
   angle_min_deg_ = round(RAD2DEG(msg->angle_min));
   if(msg->ranges.size() != ranges_.size()) ranges_.resize(msg->ranges.size());
   for(int i=0; i<msg->ranges.size(); ++i) ranges_[i] = msg->ranges[i];
-//   ranges_.clear();
-//   std::copy(ranges_.begin(), ranges_.end(), std::back_inserter(msg->ranges));
 }
 
 void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg){
   nav_sat_fix_msg_ = *msg;
-  // open_place_ = msg->position_covariance[0] > covariance_th_;
-}
-
-void WallTracking::odom_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg){
-  odom_msg_ = *msg;
-  geometry_msgs::msg::Quaternion q = msg->pose.pose.orientation;
-  double yaw = quaternion2euler_yaw(q);
-  // RCLCPP_INFO(get_logger(), "euler Z: %lf", yaw);
 }
 
 double WallTracking::ray_th_processing(std::vector<double> array, double start, double end){
@@ -177,29 +164,9 @@ double WallTracking::ray_th_processing(std::vector<double> array, double start, 
   return open_place_ray / ray_num;
 }
 
-double WallTracking::quaternion2euler_yaw(geometry_msgs::msg::Quaternion msg){
-  tf2::Quaternion q(
-    msg.x, msg.y, msg.z, msg.w
-  );
-  tf2::Matrix3x3 rpy(q);
-  double roll, pitch, yaw;
-  rpy.getRPY(roll, pitch, yaw);
-  return RAD2DEG(yaw);
-}
-
 bool WallTracking::noise(float data){
   if(data < range_min_ || std::isnan(data)) return true;
   return false;
-}
-
-float WallTracking::search_max(std::vector<double> array){
-  double max;
-  for(int i=0; i<array.size(); ++i){
-    for(int j=i+1; j<array.size(); ++j){
-      max = std::max(array[i], array[j]);
-    }
-  }
-  return max;
 }
 
 void WallTracking::wallTracking()
