@@ -47,8 +47,7 @@ protected:
   double index2rad(int index);
   void pub_cmd_vel(float linear_x, float anguler_z);
   void scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
-  void gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
-  void odom_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg);
+  void odom_gnss_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg);
   double ray_th_processing(std::vector<double> array, double start, double end);
   double quaternion2euler_yaw(geometry_msgs::msg::Quaternion msg);
   bool noise(float data);
@@ -75,13 +74,11 @@ protected:
 private:
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
-  rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gnss_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_gnss_sub_;
 
   rclcpp_action::Server<WallTrackingAction>::SharedPtr wall_tracking_action_srv_;
 
   geometry_msgs::msg::Twist cmd_vel_msg_;
-  sensor_msgs::msg::NavSatFix nav_sat_fix_msg_;
-  nav_msgs::msg::Odometry odom_msg_;
   std::string cmd_vel_topic_name_;
 
   double distance_from_wall_;
@@ -103,6 +100,7 @@ private:
   bool open_place_;
   double open_place_distance_;
   std::vector<double> ranges_;
+  bool outdoor_;
 };
 
 } // namespace WallTracking
