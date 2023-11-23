@@ -69,7 +69,7 @@ void WallTracking::init_sub() {
       "scan", rclcpp::QoS(10),
       std::bind(&WallTracking::scan_callback, this, std::placeholders::_1));
   odom_gnss_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-      "gnss/fix", rclcpp::QoS(10),
+      "odom/gnss", rclcpp::QoS(10),
       std::bind(&WallTracking::odom_gnss_callback, this, std::placeholders::_1));
 }
 
@@ -95,7 +95,7 @@ void WallTracking::init_variable() {
                     distance_to_skip_ + distance_from_wall_ /
                                             tan(DEG2RAD(start_deg_lateral_))));
   open_place_ = false;
-  outdoor_ = true;
+  outdoor_ = false;
 }
 
 double WallTracking::lateral_pid_control(double input) {
@@ -150,7 +150,8 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
 }
 
 void WallTracking::odom_gnss_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg){
-  outdoor_ = msg->pose.pose.position.x != NAN;
+  outdoor_ = !std::isnan(msg->pose.pose.position.x);
+  // RCLCPP_INFO(this->get_logger(), "outdoor: %d", outdoor_);
 }
 
 double WallTracking::ray_th_processing(std::vector<double> array, double start, double end){
@@ -162,7 +163,7 @@ double WallTracking::ray_th_processing(std::vector<double> array, double start, 
     }
     ++ray_num;
   }
-  RCLCPP_INFO(this->get_logger(), "per: %lf", open_place_ray / ray_num);
+  // RCLCPP_INFO(this->get_logger(), "per: %lf", open_place_ray / ray_num);
   return open_place_ray / ray_num;
 }
 
@@ -182,10 +183,10 @@ void WallTracking::wallTracking()
     fw_ray += (range > range_min_ && range < distance_to_stop_);
   }
 
-  bool detect_open_place = ray_th_processing(ranges_, -5.0, 5.0) >= 0.7;
+  bool detect_open_place = ray_th_processing(ranges_, -15.0, 15.0) >= 0.7;
 
   bool open_place = ray_th_processing(ranges_, -90.0, 90.0) >= 0.7;
-
+  RCLCPP_INFO(this->get_logger(), "per: %lf", ray_th_processing(ranges_, -90.0, 90.0));
   double lateral_mean =
       ray_mean(ranges_, start_deg_lateral_, end_deg_lateral_);
   bool gap_start = ranges_[deg2index(start_deg_lateral_)] *
