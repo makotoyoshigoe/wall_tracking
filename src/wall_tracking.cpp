@@ -68,9 +68,9 @@ void WallTracking::init_sub() {
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
       "scan", rclcpp::QoS(10),
       std::bind(&WallTracking::scan_callback, this, std::placeholders::_1));
-  odom_gnss_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-      "odom/gnss", rclcpp::QoS(10),
-      std::bind(&WallTracking::odom_gnss_callback, this, std::placeholders::_1));
+  gnss_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
+      "gnss/fix", rclcpp::QoS(10),
+      std::bind(&WallTracking::gnss_callback, this, std::placeholders::_1));
 }
 
 void WallTracking::init_pub() {
@@ -149,8 +149,8 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
   for(int i=0; i<msg->ranges.size(); ++i) ranges_[i] = msg->ranges[i];
 }
 
-void WallTracking::odom_gnss_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg){
-  outdoor_ = !std::isnan(msg->pose.pose.position.x);
+void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg){
+  if(msg->position_covariance_type == 0) outdoor_ = false;
   // RCLCPP_INFO(this->get_logger(), "outdoor: %d", outdoor_);
 }
 

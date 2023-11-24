@@ -47,7 +47,7 @@ protected:
   double index2rad(int index);
   void pub_cmd_vel(float linear_x, float anguler_z);
   void scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
-  void odom_gnss_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg);
+  void gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
   double ray_th_processing(std::vector<double> array, double start, double end);
   double quaternion2euler_yaw(geometry_msgs::msg::Quaternion msg);
   bool noise(float data);
@@ -74,7 +74,7 @@ protected:
 private:
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
-  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_gnss_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gnss_sub_;
 
   rclcpp_action::Server<WallTrackingAction>::SharedPtr wall_tracking_action_srv_;
 
