@@ -151,6 +151,7 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
 
 void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg){
   if(msg->position_covariance_type == 0) outdoor_ = false;
+  else outdoor_ = false;
   // RCLCPP_INFO(this->get_logger(), "outdoor: %d", outdoor_);
 }
 
