@@ -95,7 +95,7 @@ void WallTracking::init_variable() {
                     distance_to_skip_ + distance_from_wall_ /
                                             tan(DEG2RAD(start_deg_lateral_))));
   open_place_ = false;
-  outdoor_ = false;
+  outdoor_ = true;
 }
 
 double WallTracking::lateral_pid_control(double input) {
@@ -151,15 +151,15 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
 
 void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg){
   if(msg->position_covariance_type == 0) outdoor_ = false;
-  else outdoor_ = false;
+  else outdoor_ = true;
   // RCLCPP_INFO(this->get_logger(), "outdoor: %d", outdoor_);
 }
 
 double WallTracking::ray_th_processing(std::vector<double> array, double start, double end){
   double open_place_ray = 0, ray_num = 0;
   for(int i=deg2index(start); i<=deg2index(end); ++i){
-    float range = array[i] * fabsf(cos(index2rad(i)));
-    if (range < range_min_ || range > open_place_distance_){
+    float range = array[i];
+    if (range < range_min_ || range > open_place_distance_ || range == INFINITY){
       ++open_place_ray;
     }
     ++ray_num;
@@ -185,9 +185,9 @@ void WallTracking::wallTracking()
   }
 
   bool detect_open_place = ray_th_processing(ranges_, -15.0, 15.0) >= 0.7;
+  RCLCPP_INFO(this->get_logger(), "outdoor: %d, per: %lf", outdoor_, ray_th_processing(ranges_, -15.0, 15.0));
 
   bool open_place = ray_th_processing(ranges_, -90.0, 90.0) >= 0.7;
-  RCLCPP_INFO(this->get_logger(), "per: %lf", ray_th_processing(ranges_, -90.0, 90.0));
   double lateral_mean =
       ray_mean(ranges_, start_deg_lateral_, end_deg_lateral_);
   bool gap_start = ranges_[deg2index(start_deg_lateral_)] *
