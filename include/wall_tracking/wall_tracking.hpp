@@ -4,23 +4,18 @@
 #ifndef WALL_TRACKING__WALL_TRACKING_HPP_
 #define WALL_TRACKING__WALL_TRACKING_HPP_
 
-#define DEG2RAD(deg) ((deg)*M_PI/180)
-#define RAD2DEG(rad) ((rad)*180/M_PI)
-#define SQUARE(n) (n*n)
-
 #include <geometry_msgs/msg/twist.hpp>
 #include <rclcpp/qos.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
-#include <nav_msgs/msg/odometry.hpp>
+#include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <string>
 #include <vector>
-#include <tf2/convert.h>
-// #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <tf2/LinearMath/Matrix3x3.h>
 #include "wall_tracking_action/action/wall_tracking.hpp"
+#include "wall_tracking/ScanData.hpp"
 
 using WallTrackingAction = wall_tracking_action::action::WallTracking;
 using GoalHandleWallTracking = rclcpp_action::ServerGoalHandle<WallTrackingAction>;
@@ -29,78 +24,73 @@ namespace WallTracking {
 
 class WallTracking : public rclcpp::Node {
 public:
-  WallTracking();
+	WallTracking();
+	~WallTracking();
 
 protected:
-  void set_param();
-  void get_param();
-  void init_sub();
-  void init_pub();
-  void init_action();
-  void init_variable();
-  double lateral_pid_control(double input);
-  double longitude_pid_control(double input);
-  float ray_mean(std::vector<double> array, int start_deg,
-                                 int end_deg);
-  int deg2index(int deg);
-  double index2deg(int index);
-  double index2rad(int index);
-  void pub_cmd_vel(float linear_x, float anguler_z);
-  void scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
-  void gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
-  double ray_th_processing(std::vector<double> array, double start, double end);
-  double quaternion2euler_yaw(geometry_msgs::msg::Quaternion msg);
-  bool noise(float data);
-  float search_max(std::vector<double> array);
-  void wallTracking();
+	void set_param();
+	void get_param();
+	void init_sub();
+	void init_pub();
+	void init_action();
+	void init_variable();
+	float lateral_pid_control(float input);
+	void pub_cmd_vel(float linear_x, float anguler_z);
+	void scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
+	void gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
+	void wallTracking();
+	void pub_open_place_arrived(bool open_place_arrived);
+	void pub_open_place_detection(std::string open_place_detection);
 
-  rclcpp_action::GoalResponse handle_goal(
-    const rclcpp_action::GoalUUID & uuid, 
-    std::shared_ptr<const WallTrackingAction::Goal> goal
-  );
+rclcpp_action::GoalResponse handle_goal(
+	const rclcpp_action::GoalUUID & uuid, 
+	std::shared_ptr<const WallTrackingAction::Goal> goal
+);
 
-  rclcpp_action::CancelResponse handle_cancel(
-    const std::shared_ptr<GoalHandleWallTracking> goal_handle
-  );
+rclcpp_action::CancelResponse handle_cancel(
+	const std::shared_ptr<GoalHandleWallTracking> goal_handle
+);
 
-  void handle_accepted(
-    const std::shared_ptr<GoalHandleWallTracking> goal_handle
-  );
+void handle_accepted(
+	const std::shared_ptr<GoalHandleWallTracking> goal_handle
+);
 
-  void execute(
-    const std::shared_ptr<GoalHandleWallTracking> goal_handle
-  );
+void execute(
+	const std::shared_ptr<GoalHandleWallTracking> goal_handle
+);
 
 private:
-  rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
-  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
-  rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gnss_sub_;
+	rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
+	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
+	rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gnss_sub_;
+	rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr open_place_arrived_pub_;
+	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr open_place_detection_pub_;
 
-  rclcpp_action::Server<WallTrackingAction>::SharedPtr wall_tracking_action_srv_;
+	rclcpp_action::Server<WallTrackingAction>::SharedPtr wall_tracking_action_srv_;
 
-  geometry_msgs::msg::Twist cmd_vel_msg_;
-  std::string cmd_vel_topic_name_;
+	geometry_msgs::msg::Twist cmd_vel_msg_;
+	std::string cmd_vel_topic_name_;
+	std_msgs::msg::Bool open_place_arrived_msg_; 
+	std_msgs::msg::String open_place_detection_msg_;
 
-  double distance_from_wall_;
-  double distance_to_stop_;
-  float max_linear_vel_;
-  float max_angular_vel_, min_angular_vel_;
-  double sampling_rate_;
-  float ei_;
-  double kp_, ki_, kd_;
-  int start_deg_lateral_, end_deg_lateral_;
-  float range_max_, range_min_;
-  float angle_increment_deg_;
-  float angle_min_deg_;
-  int ray_th_;
-  float wheel_separation_;
-  double distance_to_skip_;
-  double flw_deg_;
-  double covariance_th_;
-  bool open_place_;
-  double open_place_distance_;
-  std::vector<double> ranges_;
-  bool outdoor_;
+	float distance_from_wall_;
+	float distance_to_stop_;
+	float max_linear_vel_;
+	float max_angular_vel_, min_angular_vel_;
+	float sampling_rate_;
+	float ei_;
+	float kp_, ki_, kd_;
+	int start_deg_lateral_, end_deg_lateral_;
+	float stop_ray_th_;
+	float wheel_separation_;
+	float distance_to_skip_;
+	float flw_deg_;
+	bool open_place_;
+	float open_place_distance_; 
+	bool outdoor_; //屋外にいるかのフラグ
+	bool init_scan_data_;
+	std::shared_ptr<ScanData> scan_data_;
+	float fwc_deg_; //前方の壁との距離をチェックする際に使用するレーザーの開始角度と終了角度
 };
 
 } // namespace WallTracking
