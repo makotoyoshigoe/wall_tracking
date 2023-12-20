@@ -14,6 +14,7 @@ include_directories(ineclude)
 ament_auto_add_executable(wall_tracking_node
   src/wall_tracking.cpp
   src/wall_tracking_node.cpp
+  src/ScanData.cpp
 )
 
 if(BUILD_TESTING)
