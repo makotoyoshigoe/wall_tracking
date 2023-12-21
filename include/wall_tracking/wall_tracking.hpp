@@ -91,6 +91,7 @@ private:
 	bool init_scan_data_;
 	std::shared_ptr<ScanData> scan_data_;
 	float fwc_deg_; //前方の壁との距離をチェックする際に使用するレーザーの開始角度と終了角度
+	float vel_open_place_, cmd_vel_;
 };
 
 } // namespace WallTracking
