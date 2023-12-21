@@ -120,6 +120,18 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
         RCLCPP_INFO(this->get_logger(), "initialized scan data");
     }
     scan_data_->dataUpdate(msg->ranges);
+    switch (outdoor_)
+    {
+    case false:
+        open_place_ = false;
+        break;
+    
+    case true:
+        float open_place_arrived_check = scan_data_->openPlaceCheck(-90., 90., open_place_distance_);
+        if(!open_place_) open_place_ = open_place_arrived_check >= 0.7;
+        else open_place_ = open_place_arrived_check >= 0.4;
+    }
+    pub_open_place_arrived(open_place_);
     // wallTracking();
     // RCLCPP_INFO(this->get_logger(), "update scan data");
 }
@@ -149,7 +161,6 @@ void WallTracking::wallTracking()
     switch (outdoor_)
     {
         case false:
-            open_place_ = false;
             if (front_wall_check >= stop_ray_th_) {
                 // RCLCPP_INFO(get_logger(), "fw_ray num: %d", fw_ray);
                 pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-45));
@@ -166,16 +177,6 @@ void WallTracking::wallTracking()
             }
         break;
         case true:
-            float open_place_arrived_check = scan_data_->openPlaceCheck(-90., 90., open_place_distance_);
-            switch (open_place_)
-            {
-                case false:
-                    open_place_ = open_place_arrived_check >= 0.7;
-                break;
-                case true:
-                    open_place_ = open_place_arrived_check >= 0.4;
-                break;
-            }
             if (front_wall_check >= stop_ray_th_) {
                 pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-45));
                 rclcpp::sleep_for(2000ms);
@@ -224,7 +225,6 @@ void WallTracking::wallTracking()
             }
         break;
     }
-    pub_open_place_arrived(open_place_);
     pub_open_place_detection(detection_res);
 }
 
@@ -271,7 +271,6 @@ void WallTracking::execute(
     const auto goal = goal_handle->get_goal();
     auto feedback = std::make_shared<WallTrackingAction::Feedback>();
     auto result = std::make_shared<WallTrackingAction::Result>();
-    open_place_ = false;
     feedback->end = false;
     while (rclcpp::ok()) {
         if (goal_handle->is_canceling()) {
