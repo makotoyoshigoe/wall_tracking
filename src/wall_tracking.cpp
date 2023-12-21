@@ -105,6 +105,7 @@ void WallTracking::init_variable()
     init_scan_data_ = false;
     vel_open_place_ = max_linear_vel_ / 2;
     cmd_vel_ = max_linear_vel_;
+    wall_tracking_flg_ = false;
 }
 
 void WallTracking::pub_cmd_vel(float linear_x, float angular_z) 
@@ -130,16 +131,18 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
     
     case true:
         float open_place_arrived_check = scan_data_->openPlaceCheck(-90., 90., open_place_distance_);
-        if(!open_place_){
-            open_place_ = open_place_arrived_check >= 0.7;
-            cmd_vel_ = max_linear_vel_;
-        }else {
-            open_place_ = open_place_arrived_check >= 0.4;
-            cmd_vel_ = vel_open_place_;
-        }
+        open_place_ = !open_place_ ? (open_place_arrived_check >= 0.7) : open_place_arrived_check >= 0.4;
+        cmd_vel_ = !open_place_ ? max_linear_vel_ : vel_open_place_;
+        // if(!open_place_){
+        //     open_place_ = open_place_arrived_check >= 0.7;
+        //     cmd_vel_ = max_linear_vel_;
+        // }else {
+        //     open_place_ = open_place_arrived_check >= 0.4;
+        //     cmd_vel_ = vel_open_place_;
+        // }
     }
     pub_open_place_arrived(open_place_);
-    // wallTracking();
+    if(wall_tracking_flg_) wallTracking();
     // RCLCPP_INFO(this->get_logger(), "update scan data");
 }
 
@@ -173,7 +176,7 @@ void WallTracking::wallTracking()
                 pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-45));
                 rclcpp::sleep_for(2000ms);
             } else if ((gap_start || gap_end) && !front_left_wall &&
-                scan_data_->noiseCheck(flw_deg_)) {
+                        !scan_data_->noiseCheck(flw_deg_)) {
                 pub_cmd_vel(cmd_vel_, 0.0);
                 // RCLCPP_INFO(get_logger(), "skip");
             } else {
@@ -185,7 +188,7 @@ void WallTracking::wallTracking()
         break;
         case true:
             if (front_wall_check >= stop_ray_th_) {
-                pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-45));
+                pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-50));
                 rclcpp::sleep_for(2000ms);
             } else {
                 std::vector<float> evals(4, 0);
@@ -279,20 +282,20 @@ void WallTracking::execute(
     auto feedback = std::make_shared<WallTrackingAction::Feedback>();
     auto result = std::make_shared<WallTrackingAction::Result>();
     feedback->end = false;
+    wall_tracking_flg_ = true;
     while (rclcpp::ok()) {
         if (goal_handle->is_canceling()) {
+            wall_tracking_flg_ = false;
             result->get = false;
             goal_handle->canceled(result);
             pub_cmd_vel(0.0, 0.0);
             RCLCPP_INFO(this->get_logger(), "Goal Canceled");
             return;
         }
-        feedback->end = open_place_;
-        goal_handle->publish_feedback(feedback);
-        wallTracking();
     }
     if (rclcpp::ok()) {
         result->get = true;
+        wall_tracking_flg_ = false;
         goal_handle->succeed(result);
         RCLCPP_INFO(this->get_logger(), "Goal Succeded");
     }
