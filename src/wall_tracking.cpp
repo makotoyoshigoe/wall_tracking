@@ -172,7 +172,7 @@ void WallTracking::wallTracking()
     {
         case false:
             if (front_wall_check >= stop_ray_th_) {
-                RCLCPP_INFO(get_logger(), "Turning");
+                // RCLCPP_INFO(get_logger(), "Turning");
                 pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-45));
                 rclcpp::sleep_for(2000ms);
             } else if ((gap_start || gap_end) && !front_left_wall &&
