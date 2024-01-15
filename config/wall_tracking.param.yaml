@@ -3,7 +3,7 @@
     cmd_vel_topic_name: "cmd_vel"
     distance_from_wall: 0.8
     distance_to_stop: 0.9
-    max_linear_vel: 0.2
+    max_linear_vel: 0.22
     max_angular_vel: 0.7
     min_angular_vel: -0.7
     sampling_rate: 0.033
@@ -15,4 +15,4 @@
     stop_ray_th: 0.3
     wheel_separation: 0.28
     distance_to_skip: 1.0
-    open_place_distance: 15.0
+    open_place_distance: 12.5
