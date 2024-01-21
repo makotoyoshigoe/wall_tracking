@@ -29,42 +29,47 @@ WallTracking::~WallTracking()
 
 void WallTracking::set_param() 
 {
-    declare_parameter("max_linear_vel", 0.0);
-    declare_parameter("max_angular_vel", 0.0);
-    declare_parameter("min_angular_vel", 0.0);
-    declare_parameter("distance_from_wall", 0.0);
-    declare_parameter("distance_to_stop", 0.0);
-    declare_parameter("sampling_rate", 0.0);
-    declare_parameter("kp", 0.0);
-    declare_parameter("ki", 0.0);
-    declare_parameter("kd", 0.0);
-    declare_parameter("start_deg_lateral", 0);
-    declare_parameter("end_deg_lateral", 0);
-    declare_parameter("stop_ray_th", 0.0);
-    declare_parameter("wheel_separation", 0.0);
-    declare_parameter("distance_to_skip", 0.0);
-    declare_parameter("cmd_vel_topic_name", "");
-    declare_parameter("open_place_distance", 0.0);
+    this->declare_parameter("max_linear_vel", 0.0);
+    this->declare_parameter("max_angular_vel", 0.0);
+    this->declare_parameter("min_angular_vel", 0.0);
+    this->declare_parameter("distance_from_wall", 0.0);
+    this->declare_parameter("distance_to_stop", 0.0);
+    this->declare_parameter("sampling_rate", 0.0);
+    this->declare_parameter("kp", 0.0);
+    this->declare_parameter("ki", 0.0);
+    this->declare_parameter("kd", 0.0);
+    this->declare_parameter("start_deg_lateral", 0);
+    this->declare_parameter("end_deg_lateral", 0);
+    this->declare_parameter("stop_ray_th", 0.0);
+    this->declare_parameter("wheel_separation", 0.0);
+    this->declare_parameter("distance_to_skip", 0.0);
+    this->declare_parameter("cmd_vel_topic_name", "");
+    this->declare_parameter("open_place_distance", 0.0);
+    this->declare_parameter("select_angvel", std::vector<double>(2, 0.0));
+    this->declare_parameter("detection_div_deg", std::vector<double>(2, 0.0));
 }
 
 void WallTracking::get_param() 
 {
-    max_linear_vel_ = get_parameter("max_linear_vel").as_double();
-    max_angular_vel_ = get_parameter("max_angular_vel").as_double();
-    min_angular_vel_ = get_parameter("min_angular_vel").as_double();
-    distance_from_wall_ = get_parameter("distance_from_wall").as_double();
-    distance_to_stop_ = get_parameter("distance_to_stop").as_double();
-    sampling_rate_ = get_parameter("sampling_rate").as_double();
-    kp_ = get_parameter("kp").as_double();
-    ki_ = get_parameter("ki").as_double();
-    kd_ = get_parameter("kd").as_double();
-    start_deg_lateral_ = get_parameter("start_deg_lateral").as_int();
-    end_deg_lateral_ = get_parameter("end_deg_lateral").as_int();
-    stop_ray_th_ = get_parameter("stop_ray_th").as_double();
-    wheel_separation_ = get_parameter("wheel_separation").as_double();
-    distance_to_skip_ = get_parameter("distance_to_skip").as_double();
-    cmd_vel_topic_name_ = get_parameter("cmd_vel_topic_name").as_string();
-    open_place_distance_ = get_parameter("open_place_distance").as_double();
+    this->get_parameter("max_linear_vel", max_linear_vel_);
+    this->get_parameter("max_angular_vel", max_angular_vel_);
+    this->get_parameter("min_angular_vel", min_angular_vel_);
+    this->get_parameter("distance_from_wall", distance_from_wall_);
+    this->get_parameter("distance_to_stop", distance_to_stop_);
+    this->get_parameter("sampling_rate", sampling_rate_);
+    this->get_parameter("kp", kp_);
+    this->get_parameter("ki", ki_);
+    this->get_parameter("kd", kd_);
+    this->get_parameter("start_deg_lateral", start_deg_lateral_);
+    this->get_parameter("end_deg_lateral", end_deg_lateral_);
+    this->get_parameter("stop_ray_th", stop_ray_th_);
+    this->get_parameter("wheel_separation", wheel_separation_);
+    this->get_parameter("distance_to_skip", distance_to_skip_);
+    this->get_parameter("cmd_vel_topic_name", cmd_vel_topic_name_);
+    this->get_parameter("open_place_distance", open_place_distance_);
+    this->get_parameter("detection_div_deg", detection_div_deg_);
+    this->get_parameter("select_angvel", select_angvel_);
+    RCLCPP_INFO(this->get_logger(), "%d", detection_div_deg_.size());
 }
 
 void WallTracking::init_sub() 
@@ -132,14 +137,16 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
     case true:
         float open_place_arrived_check = scan_data_->openPlaceCheck(-90., 90., open_place_distance_);
         open_place_ = !open_place_ ? (open_place_arrived_check >= 0.7) : open_place_arrived_check >= 0.4;
-        cmd_vel_ = !open_place_ ? max_linear_vel_ : vel_open_place_;
-        // if(!open_place_){
-        //     open_place_ = open_place_arrived_check >= 0.7;
-        //     cmd_vel_ = max_linear_vel_;
-        // }else {
-        //     open_place_ = open_place_arrived_check >= 0.4;
-        //     cmd_vel_ = vel_open_place_;
-        // }
+        // cmd_vel_ = !open_place_ ? max_linear_vel_ : vel_open_place_;
+        // cmd_vel_ = max_linear_vel_;
+        if(open_place_ && !open_place_linear_ && wall_tracking_flg_){
+            RCLCPP_INFO(this->get_logger(), "open place linear");
+            pub_cmd_vel(cmd_vel_, 0.0);
+            rclcpp::sleep_for(5000ms);
+            open_place_linear_ = true;
+        }
+        cmd_vel_ = !open_place_ ? max_linear_vel_ : 0.0;
+        if(!open_place_) open_place_linear_ = false;
     }
     pub_open_place_arrived(open_place_);
     if(wall_tracking_flg_) wallTracking();
@@ -191,47 +198,29 @@ void WallTracking::wallTracking()
                 pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-50));
                 rclcpp::sleep_for(2000ms);
             } else {
-                std::vector<float> evals(4, 0);
-                float div_num = 3;
-                float degs[3][2] = 
-                {
-                    {-15., 15.}, 
-                    {15., 45.}, 
-                    {-45., -15.}
-                };
-                for(int i=0; i<div_num; ++i){
-                    float res = scan_data_->openPlaceCheck(degs[i][0], degs[i][1], open_place_distance_);
-                    evals[i] = res < 0.7 ? -1. : res;
+                int div_num = select_angvel_.size(), j = 0;
+                std::vector<float> evals(div_num+1, 0);
+                for(int i=0; i<detection_div_deg_.size(); i+=2){
+                    float res = scan_data_->openPlaceCheck(detection_div_deg_[i], detection_div_deg_[i+1], open_place_distance_);
+                    evals[j++] = res < 0.7 ? -1. : res;
                 }
                 auto max_iter = std::max_element(evals.begin(), evals.end());
                 int max_index = std::distance(evals.begin(), max_iter);
-                // RCLCPP_INFO(this->get_logger(), "1: %f 2: %f, 3:%f, 4: %f, max i: %d", evals[0], evals[1], evals[2], evals[3], max_index);
-                switch (max_index)
-                {
-                    case 0:
-                        detection_res = "Front";
-                        pub_cmd_vel(cmd_vel_, 0.);
-                    break;
-                    case 1:
-                        detection_res = "Left";
-                        pub_cmd_vel(cmd_vel_, max_angular_vel_);
-                    break;
-                    case 2:
-                        detection_res = "Right";
-                        pub_cmd_vel(cmd_vel_, min_angular_vel_);
-                    break;
-                    case 3:
+                if(max_index != div_num){
+                    pub_cmd_vel(cmd_vel_, select_angvel_[max_index]);
+                    detection_res = "Detect open place";
+                } else {
+                    if((gap_start || gap_end) && !front_left_wall && scan_data_->noiseCheck(flw_deg_)){
+                        pub_cmd_vel(cmd_vel_, 0.0);
+                        // RCLCPP_INFO(get_logger(), "skip");
+                    } else {
                         detection_res = "Not open place";
-                        if((gap_start || gap_end) && !front_left_wall && scan_data_->noiseCheck(flw_deg_)){
-                            pub_cmd_vel(cmd_vel_, 0.0);
-                            // RCLCPP_INFO(get_logger(), "skip");
-                        } else {
-                            double lateral_mean = scan_data_->leftWallCheck(start_deg_lateral_, end_deg_lateral_);
-                            double angular_z = lateral_pid_control(lateral_mean);
-                            pub_cmd_vel(cmd_vel_, angular_z);
-                        }
-                    break;
+                        double lateral_mean = scan_data_->leftWallCheck(start_deg_lateral_, end_deg_lateral_);
+                        double angular_z = lateral_pid_control(lateral_mean);
+                        pub_cmd_vel(cmd_vel_, angular_z);
+                    }
                 }
+                // RCLCPP_INFO(this->get_logger(), "1: %f 2: %f, 3:%f, 4: %f, max i: %d", evals[0], evals[1], evals[2], evals[3], max_index);
             }
         break;
     }

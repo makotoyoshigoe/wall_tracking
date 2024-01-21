@@ -93,6 +93,9 @@ private:
 	float fwc_deg_; //前方の壁との距離をチェックする際に使用するレーザーの開始角度と終了角度
 	float vel_open_place_, cmd_vel_;
 	bool wall_tracking_flg_;
+	bool open_place_linear_;
+	std::vector<double> select_angvel_;
+	std::vector<double> detection_div_deg_;
 };
 
 } // namespace WallTracking
