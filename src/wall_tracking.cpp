@@ -69,6 +69,7 @@ void WallTracking::get_param()
     this->get_parameter("open_place_distance", open_place_distance_);
     this->get_parameter("detection_div_deg", detection_div_deg_);
     this->get_parameter("select_angvel", select_angvel_);
+    RCLCPP_INFO(this->get_logger(), "%d", detection_div_deg_.size());
 }
 
 void WallTracking::init_sub() 
@@ -197,13 +198,12 @@ void WallTracking::wallTracking()
                 pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-50));
                 rclcpp::sleep_for(2000ms);
             } else {
-                int div_num = select_angvel_.size();
+                int div_num = select_angvel_.size(), j = 0;
                 std::vector<float> evals(div_num+1, 0);
-                for(int i=0; i<div_num; i += 2){
+                for(int i=0; i<detection_div_deg_.size(); i+=2){
                     float res = scan_data_->openPlaceCheck(detection_div_deg_[i], detection_div_deg_[i+1], open_place_distance_);
-                    evals[i] = res < 0.7 ? -1. : res;
+                    evals[j++] = res < 0.7 ? -1. : res;
                 }
-                
                 auto max_iter = std::max_element(evals.begin(), evals.end());
                 int max_index = std::distance(evals.begin(), max_iter);
                 if(max_index != div_num){

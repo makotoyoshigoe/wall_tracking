@@ -17,4 +17,4 @@
     distance_to_skip: 1.0
     open_place_distance: 12.5
     detection_div_deg: [-15., 15., 15., 45., -45., -15.]
-    select_angvel: [0., -0.35, 0.35]
+    select_angvel: [0., 0.35, -0.35]
