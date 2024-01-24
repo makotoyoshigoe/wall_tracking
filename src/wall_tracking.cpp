@@ -111,7 +111,7 @@ void WallTracking::init_variable()
     open_place_ = false;
     outdoor_ = false;
     init_scan_data_ = false;
-    vel_open_place_ = max_linear_vel_ / 2;
+    vel_open_place_ = max_linear_vel_ / 3;
     cmd_vel_ = max_linear_vel_;
     wall_tracking_flg_ = false;
 }
