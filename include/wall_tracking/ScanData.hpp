@@ -20,10 +20,11 @@ private:
     float range_min_, range_max_;
 
     std::vector<float> ranges_;
+    sensor_msgs::msg::LaserScan::ConstSharedPtr tmp_scan_msg_;
 public:
     ScanData(sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
     ~ScanData();
-    void dataUpdate(std::vector<float> ranges);
+    void dataUpdate(sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
     float frontWallCheck(float start_deg, float threshold);
     float leftWallCheck(float start_deg, float end_deg);
     float openPlaceCheck(float start_deg, float end_deg, float threshold);

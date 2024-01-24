@@ -80,6 +80,9 @@ void WallTracking::init_sub()
     gnss_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
         "gnss/fix", rclcpp::QoS(10),
         std::bind(&WallTracking::gnss_callback, this, std::placeholders::_1));
+    wall_tracking_flg_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+        "wall_tracking_flg", rclcpp::QoS(10),
+        std::bind(&WallTracking::wall_tracking_flg_callback, this, std::placeholders::_1));
 }
 
 void WallTracking::init_pub() 
@@ -127,7 +130,7 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
         init_scan_data_ = true;
         RCLCPP_INFO(this->get_logger(), "initialized scan data");
     }
-    scan_data_->dataUpdate(msg->ranges);
+    scan_data_->dataUpdate(msg);
     switch (outdoor_)
     {
     case false:
@@ -137,19 +140,20 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
     case true:
         float open_place_arrived_check = scan_data_->openPlaceCheck(-90., 90., open_place_distance_);
         open_place_ = !open_place_ ? (open_place_arrived_check >= 0.7) : open_place_arrived_check >= 0.4;
-        // cmd_vel_ = !open_place_ ? max_linear_vel_ : vel_open_place_;
+        cmd_vel_ = !open_place_ ? max_linear_vel_ : vel_open_place_;
         // cmd_vel_ = max_linear_vel_;
-        if(open_place_ && !open_place_linear_ && wall_tracking_flg_){
-            RCLCPP_INFO(this->get_logger(), "open place linear");
-            pub_cmd_vel(cmd_vel_, 0.0);
-            rclcpp::sleep_for(5000ms);
-            open_place_linear_ = true;
-        }
-        cmd_vel_ = !open_place_ ? max_linear_vel_ : 0.0;
-        if(!open_place_) open_place_linear_ = false;
+        // if(open_place_ && !open_place_linear_ && wall_tracking_flg_){
+        //     RCLCPP_INFO(this->get_logger(), "open place linear");
+        //     pub_cmd_vel(cmd_vel_, 0.0);
+        //     rclcpp::sleep_for(5000ms);
+        //     open_place_linear_ = true;
+        // }
+        // cmd_vel_ = !open_place_ ? max_linear_vel_ : 0.0;
+        // if(!open_place_) open_place_linear_ = false;
     }
     pub_open_place_arrived(open_place_);
     if(wall_tracking_flg_) wallTracking();
+    else pub_cmd_vel(0., 0.);
     // RCLCPP_INFO(this->get_logger(), "update scan data");
 }
 
@@ -157,6 +161,11 @@ void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg
 {
     outdoor_ = msg->position_covariance_type == msg->COVARIANCE_TYPE_UNKNOWN ? false : true;
     // RCLCPP_INFO(this->get_logger(), "outdoor: %d", outdoor_);
+}
+
+void WallTracking::wall_tracking_flg_callback(std_msgs::msg::Bool::ConstSharedPtr msg)
+{
+    wall_tracking_flg_ = msg->data;
 }
 
 float WallTracking::lateral_pid_control(float input) 
@@ -180,8 +189,8 @@ void WallTracking::wallTracking()
         case false:
             if (front_wall_check >= stop_ray_th_) {
                 // RCLCPP_INFO(get_logger(), "Turning");
-                pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-45));
-                rclcpp::sleep_for(2000ms);
+                pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-90));
+                rclcpp::sleep_for(1000ms);
             } else if ((gap_start || gap_end) && !front_left_wall &&
                         !scan_data_->noiseCheck(flw_deg_)) {
                 pub_cmd_vel(cmd_vel_, 0.0);

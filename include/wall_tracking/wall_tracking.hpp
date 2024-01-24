@@ -41,6 +41,7 @@ protected:
 	void wallTracking();
 	void pub_open_place_arrived(bool open_place_arrived);
 	void pub_open_place_detection(std::string open_place_detection);
+	void wall_tracking_flg_callback(std_msgs::msg::Bool::ConstSharedPtr msg);
 
 rclcpp_action::GoalResponse handle_goal(
 	const rclcpp_action::GoalUUID & uuid, 
@@ -65,6 +66,7 @@ private:
 	rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gnss_sub_;
 	rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr open_place_arrived_pub_;
 	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr open_place_detection_pub_;
+	rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr wall_tracking_flg_sub_;
 
 	rclcpp_action::Server<WallTrackingAction>::SharedPtr wall_tracking_action_srv_;
 
