@@ -35,13 +35,16 @@ protected:
 	void init_action();
 	void init_variable();
 	float lateral_pid_control(float input);
+	void turn();
+	void wallTracking();
 	void pub_cmd_vel(float linear_x, float anguler_z);
 	void scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
 	void gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
-	void wallTracking();
+	void navigateOpenPlace();
 	void pub_open_place_arrived(bool open_place_arrived);
 	void pub_open_place_detection(std::string open_place_detection);
 	void wall_tracking_flg_callback(std_msgs::msg::Bool::ConstSharedPtr msg);
+	
 
 rclcpp_action::GoalResponse handle_goal(
 	[[maybe_unused]] const rclcpp_action::GoalUUID & uuid, 
