@@ -88,7 +88,7 @@ bool ScanData::thresholdCheck(float deg, float threshold)
 {
     int index = deg2index(deg);
     if(tmp_scan_msg_->ranges[index] > threshold) return true;
-    else false;
+    else return false;
 }
 
 bool ScanData::noiseCheck(float deg){
