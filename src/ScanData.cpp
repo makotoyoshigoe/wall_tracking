@@ -12,17 +12,24 @@ ScanData::ScanData(sensor_msgs::msg::LaserScan::ConstSharedPtr msg)
     angle_increment_ = RAD2DEG(msg->angle_increment);
     range_max_ = msg->range_max;
     range_min_ = msg->range_min;
-    ranges_.resize(msg->ranges.size());
+    // tmp_scan_msg_->ranges.resize(msg->ranges.size());
 }
 
 ScanData::~ScanData()
 {
 }
 
-void ScanData::dataUpdate(std::vector<float> ranges)
+// void ScanData::dataUpdate(std::vector<float> ranges)
+// {
+//     if(ranges.size() != tmp_scan_msg_->ranges.size()) tmp_scan_msg_->ranges.resize(ranges.size());
+//     for(int i=0; i<ranges.size(); ++i) tmp_scan_msg_->ranges[i] = ranges[i];
+// }
+
+void ScanData::dataUpdate(sensor_msgs::msg::LaserScan::ConstSharedPtr msg)
 {
-    if(ranges.size() != ranges_.size()) ranges_.resize(ranges.size());
-    for(int i=0; i<ranges.size(); ++i) ranges_[i] = ranges[i];
+    // if(ranges.size() != tmp_scan_msg_->ranges.size()) tmp_scan_msg_->ranges.resize(ranges.size());
+    // for(int i=0; i<ranges.size(); ++i) tmp_scan_msg_->ranges[i] = ranges[i];
+    tmp_scan_msg_ = msg;
 }
 
 float ScanData::frontWallCheck(float start_deg, float threshold)
@@ -31,7 +38,7 @@ float ScanData::frontWallCheck(float start_deg, float threshold)
     int end_index = deg2index(-start_deg);
     float sum = 0, sum_i = 0;
     for (int i = start_index; i <= end_index; ++i) {
-        float range = ranges_[i] * cos(index2rad(i));
+        float range = tmp_scan_msg_->ranges[i] * cos(index2rad(i));
         sum += (range > range_min_ && range < threshold);
         ++sum_i;
     }
@@ -46,7 +53,7 @@ float ScanData::leftWallCheck(float start_deg, float end_deg)
     int start_index = deg2index(start_deg);
     int end_index = deg2index(end_deg);
     for (int i = start_index; i <= end_index; ++i) {
-        float add = (ranges_[i] != INFINITY && ranges_[i] != NAN) ? ranges_[i] * fabsf(sin(index2rad(i))) : range_max_;
+        float add = (tmp_scan_msg_->ranges[i] != INFINITY && tmp_scan_msg_->ranges[i] != NAN) ? tmp_scan_msg_->ranges[i] * fabsf(sin(index2rad(i))) : range_max_;
         sum += add;
         ++sum_i;
     }
@@ -61,7 +68,7 @@ float ScanData::openPlaceCheck(float start_deg, float end_deg, float threshold)
     float end_index = deg2index(end_deg);
     int sum = 0, sum_i = 0;
     for(int i=start_index; i<=end_index; ++i){
-        float range = ranges_[i];
+        float range = tmp_scan_msg_->ranges[i];
         sum += (range < range_min_ || range > threshold || range == INFINITY);
         ++sum_i;
     }
@@ -72,7 +79,7 @@ float ScanData::openPlaceCheck(float start_deg, float end_deg, float threshold)
 bool ScanData::conflictCheck(float deg, float threshold)
 {
     float rad = DEG2RAD(deg);
-    float range = ranges_[deg2index(deg)] * sin(rad);
+    float range = tmp_scan_msg_->ranges[deg2index(deg)] * sin(rad);
     if(range  > threshold) return true;
     return false;
 }
@@ -80,7 +87,7 @@ bool ScanData::conflictCheck(float deg, float threshold)
 bool ScanData::thresholdCheck(float deg, float threshold)
 {
     int index = deg2index(deg);
-    if(ranges_[index] > threshold) return true;
+    if(tmp_scan_msg_->ranges[index] > threshold) return true;
     else false;
 }
 

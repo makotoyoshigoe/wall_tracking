@@ -1,6 +1,6 @@
 /**:
   ros__parameters:
-    cmd_vel_topic_name: "raspicat_cmd_vel"
+    cmd_vel_topic_name: "cmd_vel"
     distance_from_wall: 0.8
     distance_to_stop: 0.9
     max_linear_vel: 0.22
@@ -12,7 +12,7 @@
     kd: 0.0
     start_deg_lateral: 69
     end_deg_lateral: 78
-    stop_ray_th: 0.3
+    stop_ray_th: 0.1
     wheel_separation: 0.28
     distance_to_skip: 1.0
     open_place_distance: 12.5
