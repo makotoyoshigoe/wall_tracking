@@ -98,6 +98,7 @@ private:
 	bool open_place_linear_;
 	std::vector<double> select_angvel_;
 	std::vector<double> detection_div_deg_;
+    float pre_e_;
 };
 
 } // namespace WallTracking

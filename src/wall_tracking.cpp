@@ -23,6 +23,7 @@ WallTracking::WallTracking() : Node("wall_tracking_node")
     init_pub();
     init_action();
 }
+
 WallTracking::~WallTracking()
 {
 }
@@ -114,6 +115,7 @@ void WallTracking::init_variable()
     vel_open_place_ = max_linear_vel_ / 3;
     cmd_vel_ = max_linear_vel_;
     wall_tracking_flg_ = false;
+    pre_e_ = 0.;
 }
 
 void WallTracking::pub_cmd_vel(float linear_x, float angular_z) 
@@ -172,7 +174,8 @@ float WallTracking::lateral_pid_control(float input)
 {
     float e = input - distance_from_wall_;
     ei_ += e * sampling_rate_;
-    float ed = e / sampling_rate_;
+    float ed = (e - pre_e_) / sampling_rate_;
+    pre_e_ = e;
     return e * kp_ + ei_ * ki_ + ed * kd_;
 }
 
