@@ -70,7 +70,7 @@ void WallTracking::get_param()
     this->get_parameter("open_place_distance", open_place_distance_);
     this->get_parameter("detection_div_deg", detection_div_deg_);
     this->get_parameter("select_angvel", select_angvel_);
-    RCLCPP_INFO(this->get_logger(), "%d", detection_div_deg_.size());
+    // RCLCPP_INFO(this->get_logger(), "%d", detection_div_deg_.size());
 }
 
 void WallTracking::init_sub() 
@@ -263,8 +263,8 @@ void WallTracking::pub_open_place_detection(std::string open_place_detection)
 }
 
 rclcpp_action::GoalResponse WallTracking::handle_goal(
-    const rclcpp_action::GoalUUID &uuid,
-    std::shared_ptr<const WallTrackingAction::Goal> goal) 
+    [[maybe_unused]] const rclcpp_action::GoalUUID &uuid,
+    [[maybe_unused]] std::shared_ptr<const WallTrackingAction::Goal> goal) 
 {
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }

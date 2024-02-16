@@ -44,8 +44,8 @@ protected:
 	void wall_tracking_flg_callback(std_msgs::msg::Bool::ConstSharedPtr msg);
 
 rclcpp_action::GoalResponse handle_goal(
-	const rclcpp_action::GoalUUID & uuid, 
-	std::shared_ptr<const WallTrackingAction::Goal> goal
+	[[maybe_unused]] const rclcpp_action::GoalUUID & uuid, 
+	[[maybe_unused]] std::shared_ptr<const WallTrackingAction::Goal> goal
 );
 
 rclcpp_action::CancelResponse handle_cancel(
