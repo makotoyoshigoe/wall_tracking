@@ -178,10 +178,10 @@ float WallTracking::lateral_pid_control(float input)
 
 void WallTracking::wallTracking() 
 {
-    float gap_th = distance_from_wall_ * 2.0;
+    float gap_th = distance_from_wall_;
     bool gap_start = scan_data_->conflictCheck(start_deg_lateral_, gap_th);
     bool gap_end = scan_data_->conflictCheck(90., gap_th);
-    bool front_left_wall = scan_data_->thresholdCheck(flw_deg_, 1.87);
+    bool front_left_wall = scan_data_->thresholdCheck(flw_deg_, 1.91);
     float front_wall_check = scan_data_->frontWallCheck(fwc_deg_, distance_to_stop_);
     std::string detection_res = "Indoor";
     switch (outdoor_)
@@ -191,7 +191,7 @@ void WallTracking::wallTracking()
                 // RCLCPP_INFO(get_logger(), "Turning");
                 // pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-90));
                 // rclcpp::sleep_for(1000ms);
-		            geometry_msgs::msg::Twist msg;
+                geometry_msgs::msg::Twist msg;
                 msg.linear.x = 0.0;
                 msg.angular.z = DEG2RAD(-45);
                 cmd_vel_pub_->publish(msg);
@@ -212,7 +212,7 @@ void WallTracking::wallTracking()
             if (front_wall_check >= stop_ray_th_) {
                 // pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-50));
                 // rclcpp::sleep_for(2000ms);
-		            geometry_msgs::msg::Twist msg;
+                geometry_msgs::msg::Twist msg;
                 msg.linear.x = 0.0;
                 msg.angular.z = DEG2RAD(-45);
                 cmd_vel_pub_->publish(msg);
@@ -230,7 +230,7 @@ void WallTracking::wallTracking()
                     pub_cmd_vel(cmd_vel_, select_angvel_[max_index]);
                     detection_res = "Detect open place";
                 } else {
-                    if((gap_start || gap_end) && !front_left_wall && scan_data_->noiseCheck(flw_deg_)){
+                    if((gap_start || gap_end) && !front_left_wall && !scan_data_->noiseCheck(flw_deg_)){
                         pub_cmd_vel(cmd_vel_, 0.0);
                         // RCLCPP_INFO(get_logger(), "skip");
                     } else {
