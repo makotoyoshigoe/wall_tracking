@@ -92,8 +92,9 @@ bool ScanData::thresholdCheck(float deg, float threshold)
 }
 
 bool ScanData::noiseCheck(float deg){
-  if(deg < range_min_ || std::isnan(deg)) return true;
-  return false;
+    int index = deg2index(deg);
+    if(tmp_scan_msg_->ranges[index] < range_min_ || std::isnan(tmp_scan_msg_->ranges[index])) return true;
+    return false;
 }
 
 int ScanData::deg2index(float deg) { return (deg - angle_min_) / angle_increment_; }
