@@ -189,21 +189,14 @@ void WallTracking::wallTracking()
         case false:
             if (front_wall_check >= stop_ray_th_) {
                 // RCLCPP_INFO(get_logger(), "Turning");
-<<<<<<< HEAD
-                geometry_msgs::msg::Twist msg;
-                msg.linear.x = 0.0;
-                msg.angular.z = DEG2RAD(-45);
-                cmd_vel_pub_->publish(msg);
-                rclcpp::sleep_for(2000ms);
-=======
                 // pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-90));
                 // rclcpp::sleep_for(1000ms);
-		geometry_msgs::msg::Twist msg;
+		            geometry_msgs::msg::Twist msg;
                 msg.linear.x = 0.0;
                 msg.angular.z = DEG2RAD(-45);
                 cmd_vel_pub_->publish(msg);
                 rclcpp::sleep_for(500ms);
->>>>>>> 7e05316 (Modify turn)
+
             } else if ((gap_start || gap_end) && !front_left_wall &&
                         !scan_data_->noiseCheck(flw_deg_)) {
                 pub_cmd_vel(cmd_vel_, 0.0);
@@ -219,19 +212,11 @@ void WallTracking::wallTracking()
             if (front_wall_check >= stop_ray_th_) {
                 // pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-50));
                 // rclcpp::sleep_for(2000ms);
-<<<<<<< HEAD
-                geometry_msgs::msg::Twist msg;
-                msg.linear.x = 0.0;
-                msg.angular.z = DEG2RAD(-45);
-                cmd_vel_pub_->publish(msg);
-                rclcpp::sleep_for(2000ms);
-=======
-		geometry_msgs::msg::Twist msg;
+		            geometry_msgs::msg::Twist msg;
                 msg.linear.x = 0.0;
                 msg.angular.z = DEG2RAD(-45);
                 cmd_vel_pub_->publish(msg);
                 rclcpp::sleep_for(500ms);
->>>>>>> 7e05316 (Modify turn)
             } else {
                 int div_num = select_angvel_.size(), j = 0;
                 std::vector<float> evals(div_num+1, 0);
