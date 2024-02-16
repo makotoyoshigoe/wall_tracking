@@ -140,8 +140,9 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
         break;
     
     case true:
-        float per, mean_l;
-        scan_data_->openPlaceCheck(-90., 90., open_place_distance_, per, mean_l);
+        float per, mean;
+        // float p = scan_data_->openPlaceCheck(-90., 90., open_place_distance_, per, mean);
+        scan_data_->openPlaceCheck(-90., 90., open_place_distance_, per, mean);
         open_place_ = !open_place_ ? (per >= 0.7) : per >= 0.4;
         cmd_vel_ = !open_place_ ? max_linear_vel_ : vel_open_place_;
     }
@@ -212,11 +213,15 @@ void WallTracking::navigateOpenPlace()
             if (front_wall_check >= stop_ray_th_) turn();
             else {
                 int div_num = select_angvel_.size(), j = 0;
-                std::vector<float> evals(div_num+1, 0);
+                std::vector<float> evals(div_num+1, 0.), means(div_num+1, 0.);
+                float per, mean;
                 for(int i=0; i<detection_div_deg_.size(); i+=2){
-                    float per, mean_l;
-                    scan_data_->openPlaceCheck(detection_div_deg_[i], detection_div_deg_[i+1], open_place_distance_, per, mean_l);
-                    evals[j++] = per < 0.7 ? -1. : per;
+                    // float res = scan_data_->openPlaceCheck(detection_div_deg_[i], detection_div_deg_[i+1], open_place_distance_, per, mean);
+                    scan_data_->openPlaceCheck(detection_div_deg_[i], detection_div_deg_[i+1], open_place_distance_, per, mean);
+                    evals[j] = per < 0.7 ? -1. : per;
+                    means[j] = mean;
+                    RCLCPP_INFO(this->get_logger(), "Range %d : eval=%lf, mean=%lf", j+1, evals[j], means[j]);
+                    ++j;
                 }
                 auto max_iter = std::max_element(evals.begin(), evals.end());
                 int max_index = std::distance(evals.begin(), max_iter);
@@ -276,6 +281,7 @@ void WallTracking::execute(
     auto result = std::make_shared<WallTrackingAction::Result>();
     feedback->end = false;
     wall_tracking_flg_ = true;
+    rclcpp::Rate loop_rate(20);
     while (rclcpp::ok()) {
         if (goal_handle->is_canceling()) {
             wall_tracking_flg_ = false;
@@ -285,6 +291,7 @@ void WallTracking::execute(
             RCLCPP_INFO(this->get_logger(), "Goal Canceled");
             return;
         }
+        loop_rate.sleep();
     }
     if (rclcpp::ok()) {
         result->get = true;
