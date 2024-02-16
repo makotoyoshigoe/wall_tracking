@@ -23,6 +23,7 @@ WallTracking::WallTracking() : Node("wall_tracking_node")
     init_pub();
     init_action();
 }
+
 WallTracking::~WallTracking()
 {
 }
@@ -69,7 +70,7 @@ void WallTracking::get_param()
     this->get_parameter("open_place_distance", open_place_distance_);
     this->get_parameter("detection_div_deg", detection_div_deg_);
     this->get_parameter("select_angvel", select_angvel_);
-    RCLCPP_INFO(this->get_logger(), "%d", detection_div_deg_.size());
+    // RCLCPP_INFO(this->get_logger(), "%d", detection_div_deg_.size());
 }
 
 void WallTracking::init_sub() 
@@ -114,6 +115,7 @@ void WallTracking::init_variable()
     vel_open_place_ = max_linear_vel_ / 3;
     cmd_vel_ = max_linear_vel_;
     wall_tracking_flg_ = false;
+    pre_e_ = 0.;
 }
 
 void WallTracking::pub_cmd_vel(float linear_x, float angular_z) 
@@ -172,16 +174,17 @@ float WallTracking::lateral_pid_control(float input)
 {
     float e = input - distance_from_wall_;
     ei_ += e * sampling_rate_;
-    float ed = e / sampling_rate_;
+    float ed = (e - pre_e_) / sampling_rate_;
+    pre_e_ = e;
     return e * kp_ + ei_ * ki_ + ed * kd_;
 }
 
 void WallTracking::wallTracking() 
 {
-    float gap_th = distance_from_wall_ * 2.0;
+    float gap_th = distance_from_wall_;
     bool gap_start = scan_data_->conflictCheck(start_deg_lateral_, gap_th);
     bool gap_end = scan_data_->conflictCheck(90., gap_th);
-    bool front_left_wall = scan_data_->thresholdCheck(flw_deg_, 1.87);
+    bool front_left_wall = scan_data_->thresholdCheck(flw_deg_, 1.91);
     float front_wall_check = scan_data_->frontWallCheck(fwc_deg_, distance_to_stop_);
     std::string detection_res = "Indoor";
     switch (outdoor_)
@@ -191,7 +194,7 @@ void WallTracking::wallTracking()
                 // RCLCPP_INFO(get_logger(), "Turning");
                 // pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-90));
                 // rclcpp::sleep_for(1000ms);
-		            geometry_msgs::msg::Twist msg;
+                geometry_msgs::msg::Twist msg;
                 msg.linear.x = 0.0;
                 msg.angular.z = DEG2RAD(-45);
                 cmd_vel_pub_->publish(msg);
@@ -212,7 +215,7 @@ void WallTracking::wallTracking()
             if (front_wall_check >= stop_ray_th_) {
                 // pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-50));
                 // rclcpp::sleep_for(2000ms);
-		            geometry_msgs::msg::Twist msg;
+                geometry_msgs::msg::Twist msg;
                 msg.linear.x = 0.0;
                 msg.angular.z = DEG2RAD(-45);
                 cmd_vel_pub_->publish(msg);
@@ -230,7 +233,7 @@ void WallTracking::wallTracking()
                     pub_cmd_vel(cmd_vel_, select_angvel_[max_index]);
                     detection_res = "Detect open place";
                 } else {
-                    if((gap_start || gap_end) && !front_left_wall && scan_data_->noiseCheck(flw_deg_)){
+                    if((gap_start || gap_end) && !front_left_wall && !scan_data_->noiseCheck(flw_deg_)){
                         pub_cmd_vel(cmd_vel_, 0.0);
                         // RCLCPP_INFO(get_logger(), "skip");
                     } else {
@@ -260,8 +263,8 @@ void WallTracking::pub_open_place_detection(std::string open_place_detection)
 }
 
 rclcpp_action::GoalResponse WallTracking::handle_goal(
-    const rclcpp_action::GoalUUID &uuid,
-    std::shared_ptr<const WallTrackingAction::Goal> goal) 
+    [[maybe_unused]] const rclcpp_action::GoalUUID &uuid,
+    [[maybe_unused]] std::shared_ptr<const WallTrackingAction::Goal> goal) 
 {
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
