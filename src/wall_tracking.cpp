@@ -84,6 +84,10 @@ void WallTracking::init_sub()
     wall_tracking_flg_sub_ = this->create_subscription<std_msgs::msg::Bool>(
         "wall_tracking_flg", rclcpp::QoS(10),
         std::bind(&WallTracking::wall_tracking_flg_callback, this, std::placeholders::_1));
+    odom_gnss_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+        "odom_gnss", rclcpp::QoS(10),
+        std::bind(&WallTracking::wall_tracking_flg_callback, this, std::placeholders::_1)
+    );
 }
 
 void WallTracking::init_pub() 
@@ -116,6 +120,7 @@ void WallTracking::init_variable()
     cmd_vel_ = max_linear_vel_;
     wall_tracking_flg_ = false;
     pre_e_ = 0.;
+    gnss_nan_ = true;
 }
 
 void WallTracking::pub_cmd_vel(float linear_x, float angular_z) 
@@ -144,6 +149,7 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
         // float p = scan_data_->openPlaceCheck(-90., 90., open_place_distance_, per, mean);
         scan_data_->openPlaceCheck(-90., 90., open_place_distance_, per, mean);
         open_place_ = !open_place_ ? (per >= 0.7) : per >= 0.4;
+        if(gnss_nan_) open_place_ = false;
         cmd_vel_ = !open_place_ ? max_linear_vel_ : vel_open_place_;
     }
     pub_open_place_arrived(open_place_);
@@ -156,6 +162,13 @@ void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg
 {
     outdoor_ = msg->position_covariance_type == msg->COVARIANCE_TYPE_UNKNOWN ? false : true;
     // RCLCPP_INFO(this->get_logger(), "outdoor: %d", outdoor_);
+}
+
+void  WallTracking::odom_gnss_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg)
+{
+    if(std::isnan(msg->pose.pose.position.x) && std::isnan(msg->pose.pose.position.y)) gnss_nan_ = true;
+    else gnss_nan_ = false;
+    
 }
 
 void WallTracking::wall_tracking_flg_callback(std_msgs::msg::Bool::ConstSharedPtr msg)

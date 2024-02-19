@@ -16,6 +16,7 @@
 #include <vector>
 #include "wall_tracking_action/action/wall_tracking.hpp"
 #include "wall_tracking/ScanData.hpp"
+#include <nav_msgs/msg/odometry.hpp>
 
 using WallTrackingAction = wall_tracking_action::action::WallTracking;
 using GoalHandleWallTracking = rclcpp_action::ServerGoalHandle<WallTrackingAction>;
@@ -44,6 +45,7 @@ protected:
 	void pub_open_place_arrived(bool open_place_arrived);
 	void pub_open_place_detection(std::string open_place_detection);
 	void wall_tracking_flg_callback(std_msgs::msg::Bool::ConstSharedPtr msg);
+	void odom_gnss_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg);
 	
 
 rclcpp_action::GoalResponse handle_goal(
@@ -70,6 +72,7 @@ private:
 	rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr open_place_arrived_pub_;
 	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr open_place_detection_pub_;
 	rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr wall_tracking_flg_sub_;
+	rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_gnss_sub_;
 
 	rclcpp_action::Server<WallTrackingAction>::SharedPtr wall_tracking_action_srv_;
 
@@ -102,6 +105,7 @@ private:
 	std::vector<double> select_angvel_;
 	std::vector<double> detection_div_deg_;
     float pre_e_;
+	bool gnss_nan_;
 };
 
 } // namespace WallTracking
