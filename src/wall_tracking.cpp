@@ -83,7 +83,7 @@ void WallTracking::init_sub()
         "wall_tracking_flg", rclcpp::QoS(10),
         std::bind(&WallTracking::wall_tracking_flg_callback, this, std::placeholders::_1));
     odom_gnss_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        "odom_gnss", rclcpp::QoS(10),
+        "odom/gnss", rclcpp::QoS(10),
         std::bind(&WallTracking::odom_gnss_callback, this, std::placeholders::_1)
     );
 }
