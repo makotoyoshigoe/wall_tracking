@@ -77,7 +77,6 @@ private:
 	rclcpp_action::Server<WallTrackingAction>::SharedPtr wall_tracking_action_srv_;
 
 	geometry_msgs::msg::Twist cmd_vel_msg_;
-	std::string cmd_vel_topic_name_;
 	std_msgs::msg::Bool open_place_arrived_msg_; 
 	std_msgs::msg::String open_place_detection_msg_;
 

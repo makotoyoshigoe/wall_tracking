@@ -44,7 +44,6 @@ void WallTracking::set_param()
     this->declare_parameter("stop_ray_th", 0.0);
     this->declare_parameter("wheel_separation", 0.0);
     this->declare_parameter("distance_to_skip", 0.0);
-    this->declare_parameter("cmd_vel_topic_name", "");
     this->declare_parameter("open_place_distance", 0.0);
     this->declare_parameter("select_angvel", std::vector<double>(2, 0.0));
     this->declare_parameter("detection_div_deg", std::vector<double>(2, 0.0));
@@ -66,7 +65,6 @@ void WallTracking::get_param()
     this->get_parameter("stop_ray_th", stop_ray_th_);
     this->get_parameter("wheel_separation", wheel_separation_);
     this->get_parameter("distance_to_skip", distance_to_skip_);
-    this->get_parameter("cmd_vel_topic_name", cmd_vel_topic_name_);
     this->get_parameter("open_place_distance", open_place_distance_);
     this->get_parameter("detection_div_deg", detection_div_deg_);
     this->get_parameter("select_angvel", select_angvel_);
@@ -92,7 +90,7 @@ void WallTracking::init_sub()
 
 void WallTracking::init_pub() 
 {
-    cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic_name_, rclcpp::QoS(10));
+    cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", rclcpp::QoS(10));
     open_place_arrived_pub_ = this->create_publisher<std_msgs::msg::Bool>("open_place_arrived", rclcpp::QoS(10));
     open_place_detection_pub_ = this->create_publisher<std_msgs::msg::String>("open_place_detection", rclcpp::QoS(10));
 }
