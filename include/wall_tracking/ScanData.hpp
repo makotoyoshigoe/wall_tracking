@@ -27,7 +27,7 @@ public:
     void dataUpdate(sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
     float frontWallCheck(float start_deg, float threshold);
     float leftWallCheck(float start_deg, float end_deg);
-    float openPlaceCheck(float start_deg, float end_deg, float threshold);
+    void openPlaceCheck(float start_deg, float end_deg, float threshold, float &per, float &mean);
     bool conflictCheck(float deg, float threshold);
     bool thresholdCheck(float deg, float threshold);
     bool noiseCheck(float deg);

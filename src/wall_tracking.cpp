@@ -44,7 +44,6 @@ void WallTracking::set_param()
     this->declare_parameter("stop_ray_th", 0.0);
     this->declare_parameter("wheel_separation", 0.0);
     this->declare_parameter("distance_to_skip", 0.0);
-    this->declare_parameter("cmd_vel_topic_name", "");
     this->declare_parameter("open_place_distance", 0.0);
     this->declare_parameter("select_angvel", std::vector<double>(2, 0.0));
     this->declare_parameter("detection_div_deg", std::vector<double>(2, 0.0));
@@ -66,7 +65,6 @@ void WallTracking::get_param()
     this->get_parameter("stop_ray_th", stop_ray_th_);
     this->get_parameter("wheel_separation", wheel_separation_);
     this->get_parameter("distance_to_skip", distance_to_skip_);
-    this->get_parameter("cmd_vel_topic_name", cmd_vel_topic_name_);
     this->get_parameter("open_place_distance", open_place_distance_);
     this->get_parameter("detection_div_deg", detection_div_deg_);
     this->get_parameter("select_angvel", select_angvel_);
@@ -84,11 +82,15 @@ void WallTracking::init_sub()
     wall_tracking_flg_sub_ = this->create_subscription<std_msgs::msg::Bool>(
         "wall_tracking_flg", rclcpp::QoS(10),
         std::bind(&WallTracking::wall_tracking_flg_callback, this, std::placeholders::_1));
+    odom_gnss_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+        "odom/gnss", rclcpp::QoS(10),
+        std::bind(&WallTracking::odom_gnss_callback, this, std::placeholders::_1)
+    );
 }
 
 void WallTracking::init_pub() 
 {
-    cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic_name_, rclcpp::QoS(10));
+    cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", rclcpp::QoS(10));
     open_place_arrived_pub_ = this->create_publisher<std_msgs::msg::Bool>("open_place_arrived", rclcpp::QoS(10));
     open_place_detection_pub_ = this->create_publisher<std_msgs::msg::String>("open_place_detection", rclcpp::QoS(10));
 }
@@ -116,6 +118,7 @@ void WallTracking::init_variable()
     cmd_vel_ = max_linear_vel_;
     wall_tracking_flg_ = false;
     pre_e_ = 0.;
+    gnss_nan_ = true;
 }
 
 void WallTracking::pub_cmd_vel(float linear_x, float angular_z) 
@@ -140,21 +143,15 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
         break;
     
     case true:
-        float open_place_arrived_check = scan_data_->openPlaceCheck(-90., 90., open_place_distance_);
-        open_place_ = !open_place_ ? (open_place_arrived_check >= 0.7) : open_place_arrived_check >= 0.4;
+        float per, mean;
+        // float p = scan_data_->openPlaceCheck(-90., 90., open_place_distance_, per, mean);
+        scan_data_->openPlaceCheck(-90., 90., open_place_distance_, per, mean);
+        open_place_ = !open_place_ ? (per >= 0.7) : per >= 0.4;
+        if(gnss_nan_) open_place_ = false;
         cmd_vel_ = !open_place_ ? max_linear_vel_ : vel_open_place_;
-        // cmd_vel_ = max_linear_vel_;
-        // if(open_place_ && !open_place_linear_ && wall_tracking_flg_){
-        //     RCLCPP_INFO(this->get_logger(), "open place linear");
-        //     pub_cmd_vel(cmd_vel_, 0.0);
-        //     rclcpp::sleep_for(5000ms);
-        //     open_place_linear_ = true;
-        // }
-        // cmd_vel_ = !open_place_ ? max_linear_vel_ : 0.0;
-        // if(!open_place_) open_place_linear_ = false;
     }
     pub_open_place_arrived(open_place_);
-    if(wall_tracking_flg_) wallTracking();
+    if(wall_tracking_flg_) navigateOpenPlace();
     else pub_cmd_vel(0., 0.);
     // RCLCPP_INFO(this->get_logger(), "update scan data");
 }
@@ -163,6 +160,13 @@ void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg
 {
     outdoor_ = msg->position_covariance_type == msg->COVARIANCE_TYPE_UNKNOWN ? false : true;
     // RCLCPP_INFO(this->get_logger(), "outdoor: %d", outdoor_);
+}
+
+void  WallTracking::odom_gnss_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg)
+{
+    if(std::isnan(msg->pose.pose.position.x) && std::isnan(msg->pose.pose.position.y)) gnss_nan_ = true;
+    else gnss_nan_ = false;
+    
 }
 
 void WallTracking::wall_tracking_flg_callback(std_msgs::msg::Bool::ConstSharedPtr msg)
@@ -179,70 +183,63 @@ float WallTracking::lateral_pid_control(float input)
     return e * kp_ + ei_ * ki_ + ed * kd_;
 }
 
-void WallTracking::wallTracking() 
+void WallTracking::turn()
+{
+    geometry_msgs::msg::Twist msg;
+    msg.linear.x = 0.0;
+    msg.angular.z = DEG2RAD(-45);
+    cmd_vel_pub_->publish(msg);
+    rclcpp::sleep_for(500ms);
+}
+
+void WallTracking::wallTracking()
 {
     float gap_th = distance_from_wall_;
     bool gap_start = scan_data_->conflictCheck(start_deg_lateral_, gap_th);
     bool gap_end = scan_data_->conflictCheck(90., gap_th);
     bool front_left_wall = scan_data_->thresholdCheck(flw_deg_, 1.91);
+    if ((gap_start || gap_end) && !front_left_wall &&
+        !scan_data_->noiseCheck(flw_deg_)) {
+        pub_cmd_vel(cmd_vel_, 0.0);
+        // RCLCPP_INFO(get_logger(), "skip");
+    } else {
+        double lateral_mean = scan_data_->leftWallCheck(start_deg_lateral_, end_deg_lateral_);
+        double angular_z = lateral_pid_control(lateral_mean);
+        pub_cmd_vel(cmd_vel_, angular_z);
+        // RCLCPP_INFO(get_logger(), "range: %lf", lateral_mean);
+    }
+}
+
+void WallTracking::navigateOpenPlace() 
+{
     float front_wall_check = scan_data_->frontWallCheck(fwc_deg_, distance_to_stop_);
     std::string detection_res = "Indoor";
     switch (outdoor_)
     {
         case false:
-            if (front_wall_check >= stop_ray_th_) {
-                // RCLCPP_INFO(get_logger(), "Turning");
-                // pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-90));
-                // rclcpp::sleep_for(1000ms);
-                geometry_msgs::msg::Twist msg;
-                msg.linear.x = 0.0;
-                msg.angular.z = DEG2RAD(-45);
-                cmd_vel_pub_->publish(msg);
-                rclcpp::sleep_for(500ms);
-
-            } else if ((gap_start || gap_end) && !front_left_wall &&
-                        !scan_data_->noiseCheck(flw_deg_)) {
-                pub_cmd_vel(cmd_vel_, 0.0);
-                // RCLCPP_INFO(get_logger(), "skip");
-            } else {
-                double lateral_mean = scan_data_->leftWallCheck(start_deg_lateral_, end_deg_lateral_);
-                double angular_z = lateral_pid_control(lateral_mean);
-                pub_cmd_vel(cmd_vel_, angular_z);
-                // RCLCPP_INFO(get_logger(), "range: %lf", lateral_mean);
-            }
+            if (front_wall_check >= stop_ray_th_) turn();
+            else wallTracking();
         break;
         case true:
-            if (front_wall_check >= stop_ray_th_) {
-                // pub_cmd_vel(max_linear_vel_ / 4, DEG2RAD(-50));
-                // rclcpp::sleep_for(2000ms);
-                geometry_msgs::msg::Twist msg;
-                msg.linear.x = 0.0;
-                msg.angular.z = DEG2RAD(-45);
-                cmd_vel_pub_->publish(msg);
-                rclcpp::sleep_for(500ms);
-            } else {
+            if (front_wall_check >= stop_ray_th_) turn();
+            else {
                 int div_num = select_angvel_.size(), j = 0;
-                std::vector<float> evals(div_num+1, 0);
+                std::vector<float> evals(div_num+1, 0.), means(div_num+1, 0.);
+                float per, mean;
                 for(int i=0; i<detection_div_deg_.size(); i+=2){
-                    float res = scan_data_->openPlaceCheck(detection_div_deg_[i], detection_div_deg_[i+1], open_place_distance_);
-                    evals[j++] = res < 0.7 ? -1. : res;
+                    // float res = scan_data_->openPlaceCheck(detection_div_deg_[i], detection_div_deg_[i+1], open_place_distance_, per, mean);
+                    scan_data_->openPlaceCheck(detection_div_deg_[i], detection_div_deg_[i+1], open_place_distance_, per, mean);
+                    evals[j] = per < 0.7 ? -1. : per;
+                    means[j] = mean;
+                    RCLCPP_INFO(this->get_logger(), "Range %d : eval=%lf, mean=%lf", j+1, evals[j], means[j]);
+                    ++j;
                 }
                 auto max_iter = std::max_element(evals.begin(), evals.end());
                 int max_index = std::distance(evals.begin(), max_iter);
                 if(max_index != div_num){
                     pub_cmd_vel(cmd_vel_, select_angvel_[max_index]);
                     detection_res = "Detect open place";
-                } else {
-                    if((gap_start || gap_end) && !front_left_wall && !scan_data_->noiseCheck(flw_deg_)){
-                        pub_cmd_vel(cmd_vel_, 0.0);
-                        // RCLCPP_INFO(get_logger(), "skip");
-                    } else {
-                        detection_res = "Not open place";
-                        double lateral_mean = scan_data_->leftWallCheck(start_deg_lateral_, end_deg_lateral_);
-                        double angular_z = lateral_pid_control(lateral_mean);
-                        pub_cmd_vel(cmd_vel_, angular_z);
-                    }
-                }
+                } else wallTracking();
                 // RCLCPP_INFO(this->get_logger(), "1: %f 2: %f, 3:%f, 4: %f, max i: %d", evals[0], evals[1], evals[2], evals[3], max_index);
             }
         break;
@@ -295,6 +292,7 @@ void WallTracking::execute(
     auto result = std::make_shared<WallTrackingAction::Result>();
     feedback->end = false;
     wall_tracking_flg_ = true;
+    rclcpp::Rate loop_rate(20);
     while (rclcpp::ok()) {
         if (goal_handle->is_canceling()) {
             wall_tracking_flg_ = false;
@@ -304,6 +302,7 @@ void WallTracking::execute(
             RCLCPP_INFO(this->get_logger(), "Goal Canceled");
             return;
         }
+        loop_rate.sleep();
     }
     if (rclcpp::ok()) {
         result->get = true;
