@@ -61,28 +61,25 @@ float ScanData::leftWallCheck(float start_deg, float end_deg)
     return per;
 }
 
-void ScanData::openPlaceCheck(float start_deg, float end_deg, float threshold, float &per, float &mean)
+
+void ScanData::openPlaceCheck(float start_deg, float end_deg, float threshold, float &per, float &mean_l)
 {
     // RCLCPP_INFO(rclcpp::get_logger("ScanData"), "start: %f, end: %f", start_deg, end_deg);
     float start_index = deg2index(start_deg);
     float end_index = deg2index(end_deg);
-    int sum = 0, sum_i = 0;
-    float sum_l = 0., sum_n = 0.;
+    int sum = 0, sum_i = 0, sum_n = 0.;
+    float sum_l = 0.;
     for(int i=start_index; i<=end_index; ++i){
         float range = tmp_scan_msg_->ranges[i];
-        if(range == INFINITY) range = range_max_;
-        if(range < range_min_ || range > threshold){
-            ++sum;
+        sum += (range < range_min_ || range >= threshold || range == INFINITY);
+        if(range >= threshold){
             sum_l += range;
             ++sum_n;
         }
         ++sum_i;
     }
     per = static_cast<float>(sum) / static_cast<float>(sum_i);
-    mean = sum_l / static_cast<float>(sum_n);
-    // per = p;
-    // mean_l = sum_l / static_cast<float>(sum_n);
-    // return p;
+    mean_l = sum_l / static_cast<float>(sum_n);
 }
 
 bool ScanData::conflictCheck(float deg, float threshold)
