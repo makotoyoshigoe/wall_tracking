@@ -17,9 +17,14 @@
 #include "wall_tracking_action/action/wall_tracking.hpp"
 #include "wall_tracking/ScanData.hpp"
 #include <nav_msgs/msg/odometry.hpp>
+#include <nav2_msgs/action/navigate_to_pose.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+
 
 using WallTrackingAction = wall_tracking_action::action::WallTracking;
 using GoalHandleWallTracking = rclcpp_action::ServerGoalHandle<WallTrackingAction>;
+using NavigationToPose = nav2_msgs::action::NavigateToPose;
+using GoalHandleNavigationToPose = rclcpp_action::ServerGoalHandle<NavigationToPose>;
 
 namespace WallTracking {
 
@@ -46,7 +51,9 @@ protected:
 	void pub_open_place_detection(std::string open_place_detection);
 	void wall_tracking_flg_callback(std_msgs::msg::Bool::ConstSharedPtr msg);
 	void odom_gnss_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg);
-	
+	void goal_pose_callback(geometry_msgs::msg::PoseStamped::ConstSharedPtr msg);
+	void cancel_nav();
+	void resume_nav();
 
 rclcpp_action::GoalResponse handle_goal(
 	[[maybe_unused]] const rclcpp_action::GoalUUID & uuid, 
@@ -65,6 +72,23 @@ void execute(
 	const std::shared_ptr<GoalHandleWallTracking> goal_handle
 );
 
+rclcpp_action::GoalResponse nav_handle_goal(
+	[[maybe_unused]] const rclcpp_action::GoalUUID & uuid, 
+	[[maybe_unused]] std::shared_ptr<const NavigationToPose::Goal> goal
+);
+
+rclcpp_action::CancelResponse nav_handle_cancel(
+	const std::shared_ptr<GoalHandleNavigationToPose> goal_handle
+);
+
+void nav_handle_accepted(
+	const std::shared_ptr<GoalHandleNavigationToPose> goal_handle
+);
+
+void nav_execute(
+	const std::shared_ptr<GoalHandleNavigationToPose> goal_handle
+);
+
 private:
 	rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
@@ -73,6 +97,7 @@ private:
 	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr open_place_detection_pub_;
 	rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr wall_tracking_flg_sub_;
 	rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_gnss_sub_;
+	rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_pose_sub_;
 
 	rclcpp_action::Server<WallTrackingAction>::SharedPtr wall_tracking_action_srv_;
 
@@ -80,6 +105,9 @@ private:
 	std_msgs::msg::Bool open_place_arrived_msg_; 
 	std_msgs::msg::String open_place_detection_msg_;
 
+	rclcpp_action::Client<NavigationToPose>::SharedPtr navigation_action_client_;
+	rclcpp_action::Server<NavigationToPose>::SharedPtr navigation_action_srv_;
+	
 	float distance_from_wall_;
 	float distance_to_stop_;
 	float max_linear_vel_;
@@ -105,6 +133,7 @@ private:
 	std::vector<double> detection_div_deg_;
     float pre_e_;
 	bool gnss_nan_;
+	geometry_msgs::msg::PoseStamped goal_pose_;
 };
 
 } // namespace WallTracking
