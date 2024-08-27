@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Makoto Yoshigoe myoshigo0127@gmail.com
 // SPDX-License-Identifier: Apache-2.0
 
-#include<wall_tracking/ScanData.hpp>
+#include<wall_tracking_executor/ScanData.hpp>
 #include<rclcpp/rclcpp.hpp>
 
 namespace WallTracking{
