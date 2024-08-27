@@ -1,0 +1,8 @@
+# Goal
+bool start
+---
+# Result
+bool get
+---
+# Feedback
+bool end
