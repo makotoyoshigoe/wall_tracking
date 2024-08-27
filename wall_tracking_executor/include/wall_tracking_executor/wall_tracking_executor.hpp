@@ -14,14 +14,14 @@
 #include <std_msgs/msg/string.hpp>
 #include <string>
 #include <vector>
-#include "wall_tracking_action/action/wall_tracking.hpp"
-#include "wall_tracking/ScanData.hpp"
+#include "wall_tracking_msgs/action/wall_tracking.hpp"
+#include "wall_tracking_executor/ScanData.hpp"
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav2_msgs/action/navigate_to_pose.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 
 
-using WallTrackingAction = wall_tracking_action::action::WallTracking;
+using WallTrackingAction = wall_tracking_msgs::action::WallTracking;
 using GoalHandleWallTracking = rclcpp_action::ServerGoalHandle<WallTrackingAction>;
 using NavigationToPose = nav2_msgs::action::NavigateToPose;
 using GoalHandleNavigationToPose = rclcpp_action::ServerGoalHandle<NavigationToPose>;

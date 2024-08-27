@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(wall_tracking)
+project(wall_tracking_executor)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -12,7 +12,7 @@ ament_auto_find_build_dependencies()
 include_directories(ineclude)
 
 ament_auto_add_executable(wall_tracking_node
-  src/wall_tracking.cpp
+  src/wall_tracking_executor.cpp
   src/wall_tracking_node.cpp
   src/ScanData.cpp
 )

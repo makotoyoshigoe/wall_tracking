@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Makoto Yoshigoe myoshigo0127@gmail.com
 // SPDX-License-Identifier: Apache-2.0
 
-#include "wall_tracking/wall_tracking.hpp"
+#include "wall_tracking_executor/wall_tracking_executor.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -210,6 +210,7 @@ void WallTracking::turn()
 
 void WallTracking::wallTracking()
 {
+    // RCLCPP_INFO(this->get_logger(), "wall tracking");
     float gap_th = distance_from_wall_;
     bool gap_start = scan_data_->conflictCheck(start_deg_lateral_, gap_th);
     bool gap_end = scan_data_->conflictCheck(90., gap_th);
@@ -230,15 +231,14 @@ void WallTracking::navigateOpenPlace()
 {
     float front_wall_check = scan_data_->frontWallCheck(fwc_deg_, distance_to_stop_);
     std::string detection_res = "Indoor";
-    switch (outdoor_)
-    {
-        case false:
-            if (front_wall_check >= stop_ray_th_) turn();
-            else wallTracking();
-        break;
-        case true:
-            if (front_wall_check >= stop_ray_th_) turn();
-            else {
+    if (front_wall_check >= stop_ray_th_) turn();
+    else{
+        switch (outdoor_)
+        {
+            case false:
+                wallTracking();
+            break;
+            case true:
                 int div_num = select_angvel_.size(), j = 0;
                 std::vector<float> evals(div_num+1, 0.), means(div_num+1, 0.);
                 float per, mean;
@@ -255,12 +255,13 @@ void WallTracking::navigateOpenPlace()
                 if(max_index != div_num){
                     pub_cmd_vel(cmd_vel_, select_angvel_[max_index]);
                     detection_res = "Detect open place";
-                } else wallTracking();
+                } else{
+                    wallTracking();}
                 // RCLCPP_INFO(this->get_logger(), "1: %f 2: %f, 3:%f, 4: %f, max i: %d", evals[0], evals[1], evals[2], evals[3], max_index);
-            }
-        break;
+            break;
+        }
+        pub_open_place_detection(detection_res);
     }
-    pub_open_place_detection(detection_res);
 }
 
 void WallTracking::pub_open_place_arrived(bool open_place_arrived)
@@ -302,33 +303,33 @@ void WallTracking::handle_accepted(
 void WallTracking::execute(
     const std::shared_ptr<GoalHandleWallTracking> goal_handle) 
 {
-    cancel_nav();
-    rclcpp::sleep_for(5000ms);
-    resume_nav();
-    // RCLCPP_INFO(this->get_logger(), "EXECUTE");
-    // const auto goal = goal_handle->get_goal();
-    // auto feedback = std::make_shared<WallTrackingAction::Feedback>();
-    // auto result = std::make_shared<WallTrackingAction::Result>();
-    // feedback->end = false;
-    // wall_tracking_flg_ = true;
-    // rclcpp::Rate loop_rate(20);
-    // while (rclcpp::ok()) {
-    //     if (goal_handle->is_canceling()) {
-    //         wall_tracking_flg_ = false;
-    //         result->get = false;
-    //         goal_handle->canceled(result);
-    //         pub_cmd_vel(0.0, 0.0);
-    //         RCLCPP_INFO(this->get_logger(), "Goal Canceled");
-    //         return;
-    //     }
-    //     loop_rate.sleep();
-    // }
-    // if (rclcpp::ok()) {
-    //     result->get = true;
-    //     wall_tracking_flg_ = false;
-    //     goal_handle->succeed(result);
-    //     RCLCPP_INFO(this->get_logger(), "Goal Succeded");
-    // }
+    // cancel_nav();
+    // rclcpp::sleep_for(5000ms);
+    // resume_nav();
+    RCLCPP_INFO(this->get_logger(), "EXECUTE");
+    const auto goal = goal_handle->get_goal();
+    auto feedback = std::make_shared<WallTrackingAction::Feedback>();
+    auto result = std::make_shared<WallTrackingAction::Result>();
+    feedback->end = false;
+    wall_tracking_flg_ = true;
+    rclcpp::Rate loop_rate(20);
+    while (rclcpp::ok()) {
+        if (goal_handle->is_canceling()) {
+            wall_tracking_flg_ = false;
+            result->get = false;
+            goal_handle->canceled(result);
+            pub_cmd_vel(0.0, 0.0);
+            RCLCPP_INFO(this->get_logger(), "Goal Canceled");
+            return;
+        }
+        loop_rate.sleep();
+    }
+    if (rclcpp::ok()) {
+        result->get = true;
+        wall_tracking_flg_ = false;
+        goal_handle->succeed(result);
+        RCLCPP_INFO(this->get_logger(), "Goal Succeded");
+    }
 }
 
 void WallTracking::cancel_nav()

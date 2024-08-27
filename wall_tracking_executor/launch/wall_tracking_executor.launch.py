@@ -11,11 +11,11 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
-    package = "wall_tracking"
+    package = "wall_tracking_executor"
     config = os.path.join(
         get_package_share_directory(package), 
         "config", 
-        "wall_tracking.param.yaml"
+        "wall_tracking_executor.param.yaml"
     )
     
     node = Node(
