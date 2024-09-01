@@ -16,7 +16,7 @@
 #include <vector>
 #include "wall_tracking_msgs/action/wall_tracking.hpp"
 #include "wall_tracking_executor/ScanData.hpp"
-#include <nav_msgs/msg/odometry.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <nav2_msgs/action/navigate_to_pose.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 
@@ -50,7 +50,7 @@ protected:
 	void pub_open_place_arrived(bool open_place_arrived);
 	void pub_open_place_detection(std::string open_place_detection);
 	void wall_tracking_flg_callback(std_msgs::msg::Bool::ConstSharedPtr msg);
-	void odom_gnss_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg);
+	void gnss_pose_with_covariance_callback(geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg);
 	void goal_pose_callback(geometry_msgs::msg::PoseStamped::ConstSharedPtr msg);
 	void cancel_nav();
 	void resume_nav();
@@ -96,7 +96,7 @@ private:
 	rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr open_place_arrived_pub_;
 	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr open_place_detection_pub_;
 	rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr wall_tracking_flg_sub_;
-	rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_gnss_sub_;
+	rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr gnss_pose_with_covariance_sub_;
 	rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_pose_sub_;
 
 	rclcpp_action::Server<WallTrackingAction>::SharedPtr wall_tracking_action_srv_;

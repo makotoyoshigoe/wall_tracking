@@ -82,9 +82,9 @@ void WallTracking::init_sub()
     wall_tracking_flg_sub_ = this->create_subscription<std_msgs::msg::Bool>(
         "wall_tracking_flg", rclcpp::QoS(10),
         std::bind(&WallTracking::wall_tracking_flg_callback, this, std::placeholders::_1));
-    odom_gnss_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        "odom/gnss", rclcpp::QoS(10),
-        std::bind(&WallTracking::odom_gnss_callback, this, std::placeholders::_1));
+    gnss_pose_with_covariance_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+        "gnss_pose_with_covariance", rclcpp::QoS(10),
+        std::bind(&WallTracking::gnss_pose_with_covariance_callback, this, std::placeholders::_1));
     goal_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         "goal_pose", rclcpp::QoS(1),
         std::bind(&WallTracking::goal_pose_callback, this, std::placeholders::_1));
@@ -158,7 +158,7 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
         // float p = scan_data_->openPlaceCheck(-90., 90., open_place_distance_, per, mean);
         scan_data_->openPlaceCheck(-90., 90., open_place_distance_, per, mean);
         open_place_ = !open_place_ ? (per >= 0.7) : per >= 0.4;
-        if(gnss_nan_) open_place_ = false;
+        // if(gnss_nan_) open_place_ = false;
         cmd_vel_ = !open_place_ ? max_linear_vel_ : vel_open_place_;
     }
     pub_open_place_arrived(open_place_);
@@ -178,7 +178,7 @@ void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg
     // RCLCPP_INFO(this->get_logger(), "outdoor: %d", outdoor_);
 }
 
-void  WallTracking::odom_gnss_callback(nav_msgs::msg::Odometry::ConstSharedPtr msg)
+void  WallTracking::gnss_pose_with_covariance_callback(geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg)
 {
     if(std::isnan(msg->pose.pose.position.x) && std::isnan(msg->pose.pose.position.y)) gnss_nan_ = true;
     else gnss_nan_ = false;
@@ -247,7 +247,7 @@ void WallTracking::navigateOpenPlace()
                     scan_data_->openPlaceCheck(detection_div_deg_[i], detection_div_deg_[i+1], open_place_distance_, per, mean);
                     evals[j] = per < 0.7 ? -1. : per;
                     means[j] = mean;
-                    RCLCPP_INFO(this->get_logger(), "Range %d : eval=%lf, mean=%lf", j+1, evals[j], means[j]);
+                    // RCLCPP_INFO(this->get_logger(), "Range %d : eval=%lf, mean=%lf", j+1, evals[j], means[j]);
                     ++j;
                 }
                 auto max_iter = std::max_element(evals.begin(), evals.end());
@@ -303,9 +303,8 @@ void WallTracking::handle_accepted(
 void WallTracking::execute(
     const std::shared_ptr<GoalHandleWallTracking> goal_handle) 
 {
-    // cancel_nav();
+    cancel_nav();
     // rclcpp::sleep_for(5000ms);
-    // resume_nav();
     RCLCPP_INFO(this->get_logger(), "EXECUTE");
     const auto goal = goal_handle->get_goal();
     auto feedback = std::make_shared<WallTrackingAction::Feedback>();
@@ -320,6 +319,7 @@ void WallTracking::execute(
             goal_handle->canceled(result);
             pub_cmd_vel(0.0, 0.0);
             RCLCPP_INFO(this->get_logger(), "Goal Canceled");
+            resume_nav();
             return;
         }
         loop_rate.sleep();
