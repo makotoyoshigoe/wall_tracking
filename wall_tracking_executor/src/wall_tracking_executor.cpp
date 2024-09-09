@@ -242,7 +242,8 @@ void WallTracking::navigateOpenPlace()
                 int div_num = select_angvel_.size(), j = 0;
                 std::vector<float> evals(div_num+1, 0.), means(div_num+1, 0.);
                 float per, mean;
-                for(int i=0; i<detection_div_deg_.size(); i+=2){
+                int det_div_num = detection_div_deg_.size();
+                for(int i=0; i<det_div_num; i+=2){
                     // float res = scan_data_->openPlaceCheck(detection_div_deg_[i], detection_div_deg_[i+1], open_place_distance_, per, mean);
                     scan_data_->openPlaceCheck(detection_div_deg_[i], detection_div_deg_[i+1], open_place_distance_, per, mean);
                     evals[j] = per < 0.7 ? -1. : per;
