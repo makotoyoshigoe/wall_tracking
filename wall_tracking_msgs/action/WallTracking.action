@@ -5,4 +5,4 @@ bool start
 bool get
 ---
 # Feedback
-bool end
+bool open_place_arrived
