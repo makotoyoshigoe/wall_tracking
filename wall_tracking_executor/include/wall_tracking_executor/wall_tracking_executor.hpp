@@ -23,8 +23,8 @@
 
 using WallTrackingAction = wall_tracking_msgs::action::WallTracking;
 using GoalHandleWallTracking = rclcpp_action::ServerGoalHandle<WallTrackingAction>;
-using NavigationToPose = nav2_msgs::action::NavigateToPose;
-using GoalHandleNavigationToPose = rclcpp_action::ServerGoalHandle<NavigationToPose>;
+using NavigateToPose = nav2_msgs::action::NavigateToPose;
+using GoalHandleNavigateToPose = rclcpp_action::ClientGoalHandle<NavigateToPose>;
 
 namespace WallTracking {
 
@@ -72,22 +72,27 @@ void execute(
 	const std::shared_ptr<GoalHandleWallTracking> goal_handle
 );
 
-rclcpp_action::GoalResponse nav_handle_goal(
-	[[maybe_unused]] const rclcpp_action::GoalUUID & uuid, 
-	[[maybe_unused]] std::shared_ptr<const NavigationToPose::Goal> goal
-);
+// rclcpp_action::GoalResponse nav_handle_goal(
+// 	[[maybe_unused]] const rclcpp_action::GoalUUID & uuid, 
+// 	[[maybe_unused]] std::shared_ptr<const NavigationToPose::Goal> goal
+// );
 
 rclcpp_action::CancelResponse nav_handle_cancel(
-	const std::shared_ptr<GoalHandleNavigationToPose> goal_handle
+	const std::shared_ptr<GoalHandleNavigateToPose> goal_handle
 );
 
 void nav_handle_accepted(
-	const std::shared_ptr<GoalHandleNavigationToPose> goal_handle
+	const std::shared_ptr<GoalHandleNavigateToPose> goal_handle
 );
 
 void nav_execute(
-	const std::shared_ptr<GoalHandleNavigationToPose> goal_handle
+	const std::shared_ptr<GoalHandleNavigateToPose> goal_handle
 );
+
+void goalResponceCallback(const std::shared_ptr<GoalHandleNavigateToPose> &goal_handle);
+void feedbackCallback([[maybe_unused]] typename std::shared_ptr<GoalHandleNavigateToPose>, 
+        			[[maybe_unused]] const std::shared_ptr<const typename NavigateToPose::Feedback> feedback);
+void resultCallback(const GoalHandleNavigateToPose::WrappedResult & result);
 
 private:
 	rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
@@ -104,9 +109,11 @@ private:
 	geometry_msgs::msg::Twist cmd_vel_msg_;
 	std_msgs::msg::Bool open_place_arrived_msg_; 
 	std_msgs::msg::String open_place_detection_msg_;
+	nav2_msgs::action::NavigateToPose::Goal nav_goal_msgs_;
 
-	rclcpp_action::Client<NavigationToPose>::SharedPtr navigation_action_client_;
-	rclcpp_action::Server<NavigationToPose>::SharedPtr navigation_action_srv_;
+	rclcpp_action::Client<NavigateToPose>::SendGoalOptions nav_send_goal_options_;
+	rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_action_client_;
+	// rclcpp_action::Server<NavigationToPose>::SharedPtr navigation_action_srv_;
 	
 	float distance_from_wall_;
 	float distance_to_stop_;
@@ -133,7 +140,7 @@ private:
 	std::vector<double> detection_div_deg_;
     float pre_e_;
 	bool gnss_nan_;
-	geometry_msgs::msg::PoseStamped goal_pose_;
+	bool recieved_nav_goal_;
 };
 
 } // namespace WallTracking
