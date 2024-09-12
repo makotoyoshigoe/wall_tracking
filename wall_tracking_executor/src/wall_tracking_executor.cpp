@@ -379,19 +379,4 @@ void WallTracking::execute(
     }
 }
 
-void WallTracking::cancel_nav()
-{
-    auto goal_handle_future = navigation_action_client_->async_cancel_all_goals();
-    RCLCPP_INFO(this->get_logger(), "Requested for cancel navigation");
-}
-
-void WallTracking::resume_nav()
-{
-    // auto send_goal_options = rclcpp_action::Client<NavigateToPose>::SendGoalOptions();
-    // send_goal_options.goal_response_callback = std::bind(
-    //     [this] (const GoalHandleNavigateToPose::SharedPtr & goal_handle){RCLCPP_INFO(this->get_logger(), "Resume navigation");}, std::placeholders::_1);
-    
-    // RCLCPP_INFO(this->get_logger(), "Resume navigation");
-}
-
 } // namespace WallTracking

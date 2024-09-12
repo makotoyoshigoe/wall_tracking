@@ -52,8 +52,6 @@ protected:
 	void wall_tracking_flg_callback(std_msgs::msg::Bool::ConstSharedPtr msg);
 	void gnss_pose_with_covariance_callback(geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg);
 	void goal_pose_callback(geometry_msgs::msg::PoseStamped::ConstSharedPtr msg);
-	void cancel_nav();
-	void resume_nav();
 
 rclcpp_action::GoalResponse handle_goal(
 	[[maybe_unused]] const rclcpp_action::GoalUUID & uuid, 
