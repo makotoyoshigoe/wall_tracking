@@ -49,48 +49,32 @@ protected:
 	void navigateOpenPlace();
 	void pub_open_place_arrived(bool open_place_arrived);
 	void pub_open_place_detection(std::string open_place_detection);
-	void wall_tracking_flg_callback(std_msgs::msg::Bool::ConstSharedPtr msg);
 	void gnss_pose_with_covariance_callback(geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg);
 	void goal_pose_callback(geometry_msgs::msg::PoseStamped::ConstSharedPtr msg);
 
-rclcpp_action::GoalResponse handle_goal(
-	[[maybe_unused]] const rclcpp_action::GoalUUID & uuid, 
-	[[maybe_unused]] std::shared_ptr<const WallTrackingAction::Goal> goal
-);
+	// For wall_tracking action server
+	rclcpp_action::GoalResponse handle_goal(
+		[[maybe_unused]] const rclcpp_action::GoalUUID & uuid, 
+		[[maybe_unused]] std::shared_ptr<const WallTrackingAction::Goal> goal
+	);
 
-rclcpp_action::CancelResponse handle_cancel(
-	const std::shared_ptr<GoalHandleWallTracking> goal_handle
-);
+	rclcpp_action::CancelResponse handle_cancel(
+		const std::shared_ptr<GoalHandleWallTracking> goal_handle
+	);
 
-void handle_accepted(
-	const std::shared_ptr<GoalHandleWallTracking> goal_handle
-);
+	void handle_accepted(
+		const std::shared_ptr<GoalHandleWallTracking> goal_handle
+	);
 
-void execute(
-	const std::shared_ptr<GoalHandleWallTracking> goal_handle
-);
+	void execute(
+		const std::shared_ptr<GoalHandleWallTracking> goal_handle
+	);
 
-// rclcpp_action::GoalResponse nav_handle_goal(
-// 	[[maybe_unused]] const rclcpp_action::GoalUUID & uuid, 
-// 	[[maybe_unused]] std::shared_ptr<const NavigationToPose::Goal> goal
-// );
-
-rclcpp_action::CancelResponse nav_handle_cancel(
-	const std::shared_ptr<GoalHandleNavigateToPose> goal_handle
-);
-
-void nav_handle_accepted(
-	const std::shared_ptr<GoalHandleNavigateToPose> goal_handle
-);
-
-void nav_execute(
-	const std::shared_ptr<GoalHandleNavigateToPose> goal_handle
-);
-
-void goalResponceCallback(const std::shared_ptr<GoalHandleNavigateToPose> &goal_handle);
-void feedbackCallback([[maybe_unused]] typename std::shared_ptr<GoalHandleNavigateToPose>, 
-        			[[maybe_unused]] const std::shared_ptr<const typename NavigateToPose::Feedback> feedback);
-void resultCallback(const GoalHandleNavigateToPose::WrappedResult & result);
+	// For navigate_to_pose action client
+	void goalResponceCallback(const std::shared_ptr<GoalHandleNavigateToPose> &goal_handle);
+	void feedbackCallback([[maybe_unused]] typename std::shared_ptr<GoalHandleNavigateToPose>, 
+						[[maybe_unused]] const std::shared_ptr<const typename NavigateToPose::Feedback> feedback);
+	void resultCallback(const GoalHandleNavigateToPose::WrappedResult & result);
 
 private:
 	rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
@@ -98,7 +82,6 @@ private:
 	rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gnss_sub_;
 	rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr open_place_arrived_pub_;
 	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr open_place_detection_pub_;
-	rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr wall_tracking_flg_sub_;
 	rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr gnss_pose_with_covariance_sub_;
 	rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_pose_sub_;
 
@@ -111,7 +94,6 @@ private:
 
 	rclcpp_action::Client<NavigateToPose>::SendGoalOptions nav_send_goal_options_;
 	rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_action_client_;
-	// rclcpp_action::Server<NavigationToPose>::SharedPtr navigation_action_srv_;
 	
 	float distance_from_wall_;
 	float distance_to_stop_;

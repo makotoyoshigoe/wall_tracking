@@ -79,9 +79,6 @@ void WallTracking::init_sub()
     gnss_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
         "gnss/fix", rclcpp::QoS(10),
         std::bind(&WallTracking::gnss_callback, this, std::placeholders::_1));
-    wall_tracking_flg_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-        "wall_tracking_flg", rclcpp::QoS(10),
-        std::bind(&WallTracking::wall_tracking_flg_callback, this, std::placeholders::_1));
     gnss_pose_with_covariance_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
         "gnss_pose_with_covariance", rclcpp::QoS(10),
         std::bind(&WallTracking::gnss_pose_with_covariance_callback, this, std::placeholders::_1));
@@ -221,11 +218,6 @@ void  WallTracking::gnss_pose_with_covariance_callback(geometry_msgs::msg::PoseW
 {
     if(std::isnan(msg->pose.pose.position.x) && std::isnan(msg->pose.pose.position.y)) gnss_nan_ = true;
     else gnss_nan_ = false;
-}
-
-void WallTracking::wall_tracking_flg_callback(std_msgs::msg::Bool::ConstSharedPtr msg)
-{
-    wall_tracking_flg_ = msg->data;
 }
 
 float WallTracking::lateral_pid_control(float input)
