@@ -28,7 +28,7 @@ WallTracking::~WallTracking()
 {
 }
 
-void WallTracking::set_param() 
+void WallTracking::set_param()
 {
     this->declare_parameter("max_linear_vel", 0.0);
     this->declare_parameter("max_angular_vel", 0.0);
@@ -49,7 +49,7 @@ void WallTracking::set_param()
     this->declare_parameter("detection_div_deg", std::vector<double>(2, 0.0));
 }
 
-void WallTracking::get_param() 
+void WallTracking::get_param()
 {
     this->get_parameter("max_linear_vel", max_linear_vel_);
     this->get_parameter("max_angular_vel", max_angular_vel_);
@@ -71,7 +71,7 @@ void WallTracking::get_param()
     // RCLCPP_INFO(this->get_logger(), "%d", detection_div_deg_.size());
 }
 
-void WallTracking::init_sub() 
+void WallTracking::init_sub()
 {
     scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
         "scan", rclcpp::QoS(10),
@@ -90,31 +90,67 @@ void WallTracking::init_sub()
         std::bind(&WallTracking::goal_pose_callback, this, std::placeholders::_1));
 }
 
-void WallTracking::init_pub() 
+void WallTracking::init_pub()
 {
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", rclcpp::QoS(10));
     open_place_arrived_pub_ = this->create_publisher<std_msgs::msg::Bool>("open_place_arrived", rclcpp::QoS(10));
     open_place_detection_pub_ = this->create_publisher<std_msgs::msg::String>("open_place_detection", rclcpp::QoS(10));
 }
 
-void WallTracking::init_action() 
+void WallTracking::init_action()
 {
     wall_tracking_action_srv_ = rclcpp_action::create_server<WallTrackingAction>(
         this, "wall_tracking",
         std::bind(&WallTracking::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
         std::bind(&WallTracking::handle_cancel, this, std::placeholders::_1),
         std::bind(&WallTracking::handle_accepted, this, std::placeholders::_1));
-    navigation_action_srv_ = rclcpp_action::create_server<NavigationToPose>(
-        this, "navigate_to_pose",
-        std::bind(&WallTracking::nav_handle_goal, this, std::placeholders::_1, std::placeholders::_2),
-        std::bind(&WallTracking::nav_handle_cancel, this, std::placeholders::_1),
-        std::bind(&WallTracking::nav_handle_accepted, this, std::placeholders::_1));
-    navigation_action_client_ = rclcpp_action::create_client<NavigationToPose>(
+    navigation_action_client_ = rclcpp_action::create_client<NavigateToPose>(
         this,
         "navigate_to_pose");
+    nav_send_goal_options_ = rclcpp_action::Client<NavigateToPose>::SendGoalOptions();
+    using namespace std::placeholders;
+    nav_send_goal_options_.goal_response_callback = std::bind(
+        &WallTracking::goalResponceCallback, this, _1);
+    nav_send_goal_options_.result_callback = std::bind(
+        &WallTracking::resultCallback, this, std::placeholders::_1);
+    nav_send_goal_options_.feedback_callback = std::bind(
+        &WallTracking::feedbackCallback, this, 
+        std::placeholders::_1, std::placeholders::_2);
 }
 
-void WallTracking::init_variable() 
+void WallTracking::goalResponceCallback(const std::shared_ptr<GoalHandleNavigateToPose> & goal_handle)
+{
+    if(!goal_handle){
+        RCLCPP_INFO(this->get_logger(), "Goal was rejected by server");
+    }else{
+        RCLCPP_INFO(this->get_logger(), "Goal accepted by server, waiting for result");
+    }
+}
+
+void WallTracking::feedbackCallback([[maybe_unused]] typename std::shared_ptr<GoalHandleNavigateToPose>, 
+        			[[maybe_unused]] const std::shared_ptr<const typename NavigateToPose::Feedback> feedback){}
+
+void WallTracking::resultCallback(const GoalHandleNavigateToPose::WrappedResult & result){
+    switch (result.code) {
+      case rclcpp_action::ResultCode::SUCCEEDED:
+        RCLCPP_INFO(this->get_logger(), "Goal succeeded!");
+        recieved_nav_goal_ = false;
+        RCLCPP_INFO(this->get_logger(), "Recieved nav goal: %d", recieved_nav_goal_);
+        break;
+      case rclcpp_action::ResultCode::ABORTED:
+        RCLCPP_WARN(this->get_logger(), "Goal was aborted");
+        break;
+      case rclcpp_action::ResultCode::CANCELED:
+        RCLCPP_WARN(this->get_logger(), "Goal was canceled");
+        // recieved_nav_goal_ = true;
+        break;
+      default:
+        RCLCPP_ERROR(this->get_logger(), "Unknown result code");
+        break;
+    }
+}
+
+void WallTracking::init_variable()
 {
     ei_ = 0.0;
     fwc_deg_ = RAD2DEG(atan2f(-wheel_separation_ / 2, distance_to_stop_));
@@ -131,7 +167,7 @@ void WallTracking::init_variable()
     gnss_nan_ = true;
 }
 
-void WallTracking::pub_cmd_vel(float linear_x, float angular_z) 
+void WallTracking::pub_cmd_vel(float linear_x, float angular_z)
 {
     cmd_vel_msg_.linear.x = std::min(linear_x, max_linear_vel_);
     cmd_vel_msg_.angular.z = std::max(std::min(angular_z, max_angular_vel_), min_angular_vel_);
@@ -169,7 +205,10 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
 
 void WallTracking::goal_pose_callback(geometry_msgs::msg::PoseStamped::ConstSharedPtr msg)
 {
-    RCLCPP_INFO(this->get_logger(), "Goal(x, y): (%lf, %lf)", msg->pose.position.x, msg->pose.position.y);
+    nav_goal_msgs_.pose = *msg;
+    recieved_nav_goal_ = true;
+    RCLCPP_INFO(this->get_logger(), "Recieved nav goal: %d", recieved_nav_goal_);
+    navigation_action_client_->async_send_goal(nav_goal_msgs_, nav_send_goal_options_);
 }
 
 void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)
@@ -182,7 +221,6 @@ void  WallTracking::gnss_pose_with_covariance_callback(geometry_msgs::msg::PoseW
 {
     if(std::isnan(msg->pose.pose.position.x) && std::isnan(msg->pose.pose.position.y)) gnss_nan_ = true;
     else gnss_nan_ = false;
-    
 }
 
 void WallTracking::wall_tracking_flg_callback(std_msgs::msg::Bool::ConstSharedPtr msg)
@@ -190,7 +228,7 @@ void WallTracking::wall_tracking_flg_callback(std_msgs::msg::Bool::ConstSharedPt
     wall_tracking_flg_ = msg->data;
 }
 
-float WallTracking::lateral_pid_control(float input) 
+float WallTracking::lateral_pid_control(float input)
 {
     float e = input - distance_from_wall_;
     ei_ += e * sampling_rate_;
@@ -257,7 +295,8 @@ void WallTracking::navigateOpenPlace()
                     pub_cmd_vel(cmd_vel_, select_angvel_[max_index]);
                     detection_res = "Detect open place";
                 } else{
-                    wallTracking();}
+                    wallTracking();
+                }
                 // RCLCPP_INFO(this->get_logger(), "1: %f 2: %f, 3:%f, 4: %f, max i: %d", evals[0], evals[1], evals[2], evals[3], max_index);
             break;
         }
@@ -302,15 +341,17 @@ void WallTracking::handle_accepted(
 }
 
 void WallTracking::execute(
-    const std::shared_ptr<GoalHandleWallTracking> goal_handle) 
+    const std::shared_ptr<GoalHandleWallTracking> goal_handle)
 {
-    cancel_nav();
-    // rclcpp::sleep_for(5000ms);
+    if(recieved_nav_goal_){
+        navigation_action_client_->async_cancel_all_goals();
+        RCLCPP_INFO(this->get_logger(), "Send cancel navigation to server");
+    }
+    rclcpp::sleep_for(1000ms);
     RCLCPP_INFO(this->get_logger(), "EXECUTE");
     const auto goal = goal_handle->get_goal();
-    auto feedback = std::make_shared<WallTrackingAction::Feedback>();
+    std::shared_ptr<WallTrackingAction::Feedback> feedback = std::make_shared<WallTrackingAction::Feedback>();
     auto result = std::make_shared<WallTrackingAction::Result>();
-    feedback->end = false;
     wall_tracking_flg_ = true;
     rclcpp::Rate loop_rate(20);
     while (rclcpp::ok()) {
@@ -320,9 +361,14 @@ void WallTracking::execute(
             goal_handle->canceled(result);
             pub_cmd_vel(0.0, 0.0);
             RCLCPP_INFO(this->get_logger(), "Goal Canceled");
-            resume_nav();
+            if(recieved_nav_goal_){
+                navigation_action_client_->async_send_goal(nav_goal_msgs_, nav_send_goal_options_);
+                RCLCPP_INFO(this->get_logger(), "Resume navigation");
+            }
             return;
         }
+        feedback->open_place_arrived = open_place_;
+        goal_handle->publish_feedback(feedback);
         loop_rate.sleep();
     }
     if (rclcpp::ok()) {
@@ -331,64 +377,6 @@ void WallTracking::execute(
         goal_handle->succeed(result);
         RCLCPP_INFO(this->get_logger(), "Goal Succeded");
     }
-}
-
-void WallTracking::cancel_nav()
-{
-    auto goal_handle_future = navigation_action_client_->async_cancel_all_goals();
-    RCLCPP_INFO(this->get_logger(), "Requested for cancel navigation");
-}
-
-void WallTracking::resume_nav()
-{
-    auto goal_msg = NavigationToPose::Goal();
-    goal_msg.pose = goal_pose_;
-    // RCLCPP_INFO(this->get_logger(), "bttree: %s", goal_msg.behavior_tree);
-    auto send_goal_options = rclcpp_action::Client<NavigationToPose>::SendGoalOptions();
-    navigation_action_client_->async_send_goal(goal_msg, send_goal_options);
-    RCLCPP_INFO(this->get_logger(), "Resume navigation");
-}
-
-rclcpp_action::GoalResponse WallTracking::nav_handle_goal(
-	[[maybe_unused]] const rclcpp_action::GoalUUID & uuid, 
-	[[maybe_unused]] std::shared_ptr<const NavigationToPose::Goal> goal
-)
-{
-    return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
-}
-
-rclcpp_action::CancelResponse WallTracking::nav_handle_cancel(
-	[[maybe_unused]] const std::shared_ptr<GoalHandleNavigationToPose> goal_handle
-)
-{
-    RCLCPP_INFO(this->get_logger(), "Navigation: Received request to cancel goal");
-    (void)goal_handle;
-    return rclcpp_action::CancelResponse::ACCEPT;
-}
-
-void WallTracking::nav_handle_accepted(
-	const std::shared_ptr<GoalHandleNavigationToPose> goal_handle
-)
-{
-    std::thread{
-    std::bind(&WallTracking::nav_execute, this, std::placeholders::_1),
-        goal_handle
-    }.detach();
-}
-
-void WallTracking::nav_execute(
-	const std::shared_ptr<GoalHandleNavigationToPose> goal_handle
-)
-{
-    goal_pose_ = goal_handle->get_goal()->pose;
-    RCLCPP_INFO(this->get_logger(), "Saved goal pose of navigation");
-    // rclcpp::Rate loop_rate(20);
-    // while (rclcpp::ok())
-    // {
-    //     loop_rate.sleep();
-    //     if(goal_handle->is_canceling()) break;
-    // }
-    // RCLCPP_INFO(this->get_logger(), "Navigation: Received request to cancel goal");
 }
 
 } // namespace WallTracking
