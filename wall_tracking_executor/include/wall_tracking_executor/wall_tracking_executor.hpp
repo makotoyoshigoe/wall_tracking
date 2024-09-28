@@ -19,7 +19,10 @@
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <nav2_msgs/action/navigate_to_pose.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
-
+#include <std_msgs/msg/float32.hpp>
+#include <wall_tracking_msgs/msg/behavior_stamped_array.hpp>
+#include <wall_tracking_msgs/msg/behavior_stamped.hpp>
+#include <geometry_msgs/msg/pose_array.hpp>
 
 using WallTrackingAction = wall_tracking_msgs::action::WallTracking;
 using GoalHandleWallTracking = rclcpp_action::ServerGoalHandle<WallTrackingAction>;
@@ -51,6 +54,7 @@ protected:
 	void pub_open_place_detection(std::string open_place_detection);
 	void gnss_pose_with_covariance_callback(geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg);
 	void goal_pose_callback(geometry_msgs::msg::PoseStamped::ConstSharedPtr msg);
+	void alpha_callback(std_msgs::msg::Float32::ConstSharedPtr msg);
 
 	// For wall_tracking action server
 	rclcpp_action::GoalResponse handle_goal(
@@ -75,6 +79,8 @@ protected:
 	void feedbackCallback([[maybe_unused]] typename std::shared_ptr<GoalHandleNavigateToPose>, 
 						[[maybe_unused]] const std::shared_ptr<const typename NavigateToPose::Feedback> feedback);
 	void resultCallback(const GoalHandleNavigateToPose::WrappedResult & result);
+	void addBehaviorStamedArray(std::string behavior_name);
+	void behaviorStampedPub(void);
 
 private:
 	rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
@@ -84,6 +90,7 @@ private:
 	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr open_place_detection_pub_;
 	rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr gnss_pose_with_covariance_sub_;
 	rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_pose_sub_;
+	rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr alpha_sub_;
 
 	rclcpp_action::Server<WallTrackingAction>::SharedPtr wall_tracking_action_srv_;
 
@@ -94,7 +101,10 @@ private:
 
 	rclcpp_action::Client<NavigateToPose>::SendGoalOptions nav_send_goal_options_;
 	rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_action_client_;
-	
+
+	std::vector<wall_tracking_msgs::msg::BehaviorStamped> behavior_stamped_array_;
+	rclcpp::Publisher<wall_tracking_msgs::msg::BehaviorStamped>::SharedPtr behavior_stamped_array_pub_;
+
 	float distance_from_wall_;
 	float distance_to_stop_;
 	float max_linear_vel_;
@@ -118,9 +128,11 @@ private:
 	bool open_place_linear_;
 	std::vector<double> select_angvel_;
 	std::vector<double> detection_div_deg_;
-    float pre_e_;
+	float pre_e_;
 	bool gnss_nan_;
 	bool recieved_nav_goal_;
+	bool only_navigate_open_place_flg_ = false;
+	float alpha_;
 };
 
 } // namespace WallTracking
