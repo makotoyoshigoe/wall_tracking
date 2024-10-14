@@ -263,7 +263,7 @@ void WallTracking::turn()
     msg.linear.x = 0.0;
     msg.angular.z = DEG2RAD(-45);
     cmd_vel_pub_->publish(msg);
-    rclcpp::sleep_for(500ms);
+    rclcpp::sleep_for(100ms);
 }
 
 void WallTracking::wallTracking()
