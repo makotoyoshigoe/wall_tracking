@@ -1,0 +1,1 @@
+wall_tracking_msgs/BehaviorStamped[] behavior_stamped_array

@@ -20,12 +20,19 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+
+set(msg_files
+  "msg/BehaviorStamped.msg"
+  "msg/BehaviorStampedArray.msg"
+)
+
 set(action_files
   "action/WallTracking.action"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${action_files}
+  ${msg_files}
   DEPENDENCIES 
     builtin_interfaces
   ADD_LINTER_TESTS
