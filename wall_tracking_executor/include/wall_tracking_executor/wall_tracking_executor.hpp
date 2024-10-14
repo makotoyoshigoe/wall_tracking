@@ -54,7 +54,6 @@ protected:
 	void pub_open_place_detection(std::string open_place_detection);
 	void gnss_pose_with_covariance_callback(geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg);
 	void goal_pose_callback(geometry_msgs::msg::PoseStamped::ConstSharedPtr msg);
-	void alpha_callback(std_msgs::msg::Float32::ConstSharedPtr msg);
 
 	// For wall_tracking action server
 	rclcpp_action::GoalResponse handle_goal(
@@ -90,7 +89,6 @@ private:
 	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr open_place_detection_pub_;
 	rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr gnss_pose_with_covariance_sub_;
 	rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_pose_sub_;
-	rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr alpha_sub_;
 
 	rclcpp_action::Server<WallTrackingAction>::SharedPtr wall_tracking_action_srv_;
 
@@ -131,8 +129,6 @@ private:
 	float pre_e_;
 	bool gnss_nan_;
 	bool recieved_nav_goal_;
-	bool only_navigate_open_place_flg_ = false;
-	float alpha_;
 };
 
 } // namespace WallTracking

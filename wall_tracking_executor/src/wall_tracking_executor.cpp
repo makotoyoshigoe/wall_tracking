@@ -85,13 +85,6 @@ void WallTracking::init_sub()
     goal_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         "goal_pose", rclcpp::QoS(1),
         std::bind(&WallTracking::goal_pose_callback, this, std::placeholders::_1));
-    alpha_sub_ = this->create_subscription<std_msgs::msg::Float32>(
-        "alpha", rclcpp::QoS(2), std::bind(&WallTracking::alpha_callback, this, std::placeholders::_1));
-}
-
-void WallTracking::alpha_callback(std_msgs::msg::Float32::ConstSharedPtr msg)
-{
-    alpha_ = msg->data;
 }
 
 void WallTracking::init_pub()
@@ -233,7 +226,7 @@ void WallTracking::goal_pose_callback(geometry_msgs::msg::PoseStamped::ConstShar
     addBehaviorStamedArray("Navigation Start");
     recieved_nav_goal_ = true;
     RCLCPP_INFO(this->get_logger(), "Recieved nav goal: %d", recieved_nav_goal_);
-    navigation_action_client_->async_send_goal(nav_goal_msgs_, nav_send_goal_options_);
+	if(!wall_tracking_flg_) navigation_action_client_->async_send_goal(nav_goal_msgs_, nav_send_goal_options_);
 }
 
 void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)
