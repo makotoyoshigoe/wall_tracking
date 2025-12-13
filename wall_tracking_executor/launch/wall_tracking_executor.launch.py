@@ -22,7 +22,8 @@ def generate_launch_description():
         package=package, 
         name="wall_tracking_node", 
         executable="wall_tracking_node", 
-        parameters=[config]
+        parameters=[config], 
+        # remappings=[("cmd_vel", "cmd_vel_fake")], 
     )
     
     ld = LaunchDescription()

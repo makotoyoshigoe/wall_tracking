@@ -14,8 +14,7 @@
 #include <std_msgs/msg/string.hpp>
 #include <string>
 #include <vector>
-#include "wall_tracking_msgs/action/wall_tracking.hpp"
-#include "wall_tracking_executor/ScanData.hpp"
+
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <nav2_msgs/action/navigate_to_pose.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -23,6 +22,12 @@
 #include <wall_tracking_msgs/msg/behavior_stamped_array.hpp>
 #include <wall_tracking_msgs/msg/behavior_stamped.hpp>
 #include <geometry_msgs/msg/pose_array.hpp>
+
+#include "wall_tracking_msgs/action/wall_tracking.hpp"
+#include "wall_tracking_executor/ScanData.hpp"
+#include "wall_tracking_executor/controller.hpp"
+#include "wall_tracking_executor/open_place_checker.hpp"
+#include "wall_tracking_executor/potential_controller.hpp"
 
 using WallTrackingAction = wall_tracking_msgs::action::WallTracking;
 using GoalHandleWallTracking = rclcpp_action::ServerGoalHandle<WallTrackingAction>;
@@ -120,6 +125,9 @@ private:
 	bool outdoor_; //屋外にいるかのフラグ
 	bool init_scan_data_;
 	std::shared_ptr<ScanData> scan_data_;
+    std::shared_ptr<Controller> controller_;
+    std::shared_ptr<OpenPlaceChecker> open_place_checker_;
+    std::shared_ptr<PotentialController> potential_controller_;
 	float fwc_deg_; //前方の壁との距離をチェックする際に使用するレーザーの開始角度と終了角度
 	float vel_open_place_, cmd_vel_;
 	bool wall_tracking_flg_;

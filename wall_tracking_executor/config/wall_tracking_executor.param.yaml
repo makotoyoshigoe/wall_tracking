@@ -1,25 +1,34 @@
 /**:
   ros__parameters:
-    distance_from_wall: 0.8
-    distance_to_stop: 0.8
-    max_linear_vel: 0.22
-    max_angular_vel: 0.7
-    min_angular_vel: -0.7
-    sampling_rate: 0.033
-    kp: 12.0
-    ki: 0.0
-    kd: 0.0
-    start_deg_lateral: 69
-    end_deg_lateral: 78
-    stop_ray_th: 0.1
-    wheel_separation: 0.28
-    distance_to_skip: 0.6
-    open_place_distance: 12.5
-    # detection_div_deg: [-15., 15., 15., 45., -45., -15.]
-    # select_angvel: [0., 0.35, -0.35]
-    detection_div_deg: [-9., 9., 
-                        9., 27., 
-                        -27., -9.,
-                        27., 45.,  
-                        -45., -27.]
-    select_angvel: [0., 0.2, -0.2, 0.35, -0.35]
+    wt_controller:
+      kp: 10.0
+      linear_vel:
+        max: 0.2
+      angular_vel:
+        max: 1.0
+      search_angle:
+        front:
+          start: -25.0
+          end: 25.0
+        side:
+          start: 69.0
+          end: 80.0
+      obstacle_avoidance_threshold: 0.4
+      target_wall_distance: 0.6
+
+    # Potential controller
+    potential:
+      critical_distance: 1.0
+      repulsive_gain_map: 1.0
+      repulsive_gain_scan: 1.0
+      attractive_gain: 3.0
+      repulsive_min_distance: 0.25
+      sigma: 0.3
+
+    # Open place checker
+    open_place_checker:
+      detect_angle_start: -45.0
+      detect_angle_end: 45.0
+      detect_angle_division_num: 5
+      range_th: 15.0
+      ratio_th: 0.7

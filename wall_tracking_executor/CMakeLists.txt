@@ -10,9 +10,13 @@ find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
 ament_auto_add_executable(wall_tracking_node
-  src/wall_tracking_executor.cpp
+  src/main.cpp
   src/wall_tracking_node.cpp
+  src/action.cpp
   src/ScanData.cpp
+  src/controller.cpp
+  src/potential_controller.cpp
+  src/open_place_checker.cpp
 )
 
 if(BUILD_TESTING)
