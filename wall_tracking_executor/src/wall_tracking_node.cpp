@@ -14,7 +14,9 @@
 using namespace std::chrono_literals;
 
 namespace WallTracking {
-WallTracking::WallTracking() : Node("wall_tracking_node") 
+WallTracking::WallTracking() : Node("wall_tracking_node"), 
+init_scan_data_(false), 
+init_tf_(false)
 {
     set_param();
     get_param();
@@ -29,6 +31,9 @@ WallTracking::~WallTracking()
 
 void WallTracking::set_param()
 {
+    // Menber Variables
+    declare_parameter("map_frame_id", std::string("map"));
+
     // Parameters for Controller
     declare_parameter("wt_controller.linear_vel.max", 0.2);
     declare_parameter("wt_controller.angular_vel.max", 1.0);
@@ -65,6 +70,9 @@ void WallTracking::set_param()
 
 void WallTracking::get_param()
 {
+    // Member Variables
+    map_frame_id_ = get_parameter("map_frame_id").as_string();
+
     // For Controller
     float lin_max_vel = get_parameter("wt_controller.linear_vel.max").as_double();
     float ang_max_vel = get_parameter("wt_controller.angular_vel.max").as_double();
@@ -179,6 +187,8 @@ void WallTracking::behaviorStampedPub(void)
         wall_tracking_msgs::msg::BehaviorStamped tmp;
         tmp.behavior_name = b.behavior_name;
         tmp.stamp = b.stamp;
+        tmp.resetting_pose = b.resetting_pose;
+        tmp.resetting_scan = b.resetting_scan;
         behavior_stamped_array_pub_->publish(tmp);
         pub_rate.sleep();
     }
@@ -204,6 +214,7 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
         RCLCPP_INFO(this->get_logger(), "initialized scan data");
     }
     scan_data_->dataUpdate(msg);
+    scan_msg_ = msg;
 }
 
 void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)
@@ -216,7 +227,7 @@ void WallTracking::goal_pose_callback(geometry_msgs::msg::PoseStamped::ConstShar
 {
     nav_goal_msgs_.pose = *msg;
     behavior_stamped_array_.clear();
-    addBehaviorStamedArray("Navigation Start");
+    addBehaviorStamedArray("Navigation Start", false);
     recieved_nav_goal_ = true;
     RCLCPP_INFO(this->get_logger(), "Recieved nav goal: %d", recieved_nav_goal_);
 	if(!wall_tracking_flg_) navigation_action_client_->async_send_goal(nav_goal_msgs_, nav_send_goal_options_);
@@ -242,13 +253,15 @@ void WallTracking::navigateOpenPlace()
     if(!outdoor_){
         cmd_vel = controller_->get_cmd_vel();
     }else{
+        open_place_arrived_checker_->set_scan(tmp_scan);
+        open_place_ = open_place_arrived_checker_->open_place_arrived();
+        // if(open_place_) RCLCPP_DEBUG(get_logger(), "Arrived Open place.");
+
         open_place_checker_->set_scan(tmp_scan);
         if(open_place_checker_->open_place_detectable()){
             // If detectable, calculate cmd_vel by PotentialController
-            RCLCPP_DEBUG(get_logger(), "Open place detected. Calculate cmd_vel.");
-            open_place_arrived_checker_->set_scan(tmp_scan);
-            open_place_ = open_place_arrived_checker_->open_place_arrived();
-            if(open_place_) RCLCPP_DEBUG(get_logger(), "Arrived Open place.");
+            // RCLCPP_DEBUG(get_logger(), "Open place detected. Calculate cmd_vel.");
+
             float lin_vel_coeff = 1 - 0.5 * open_place_;
 
             std::array<float, 3> open_laser_info = open_place_checker_->get_open_laser_info();
@@ -258,7 +271,7 @@ void WallTracking::navigateOpenPlace()
             detection_res = "Detect open place";
         }else{
             // If not detectable, wall tracking
-            RCLCPP_DEBUG(get_logger(), "No open place detected. Wall following.");
+            // RCLCPP_DEBUG(get_logger(), "No open place detected. Wall following.");
             // controller_->set_scan(debug_ ? tmp_scan : tmp_integ_scan);
             cmd_vel = controller_->get_cmd_vel();
         }
@@ -268,13 +281,22 @@ void WallTracking::navigateOpenPlace()
     pub_open_place_detection(detection_res);
 }
 
-void WallTracking::addBehaviorStamedArray(std::string behavior_name)
+void WallTracking::addBehaviorStamedArray(
+    std::string behavior_name, bool after_resetting)
 {
     wall_tracking_msgs::msg::BehaviorStamped tmp_behavior_stamped;
     tmp_behavior_stamped.behavior_name = behavior_name;
     tmp_behavior_stamped.stamp = now();
+    
+    if(after_resetting){
+        std::optional<geometry_msgs::msg::Pose2D> pose = get_parts_pose_in_map(scan_msg_->header.frame_id);
+        if(pose.has_value()){
+            RCLCPP_INFO(get_logger(), "Resetting Pose was available");
+            tmp_behavior_stamped.resetting_pose = pose.value();
+            tmp_behavior_stamped.resetting_scan = *scan_msg_;
+        }
+    }
     behavior_stamped_array_.push_back(tmp_behavior_stamped);
-    // RCLCPP_INFO(this->get_logger(), "Num of behavior stamped array: %ld", behavior_stamped_array_.size());
 }
 
 void WallTracking::pub_open_place_arrived(bool open_place_arrived)
@@ -292,50 +314,51 @@ void WallTracking::pub_open_place_detection(std::string open_place_detection)
 void WallTracking::execute(
     const std::shared_ptr<GoalHandleWallTracking> goal_handle)
 {
-    const auto debug = goal_handle->get_goal()->start;
+    if(!init_tf_) init_tf();
+    const auto debug = goal_handle->get_goal()->debug;
     if(!debug){
         while(!recieved_nav_goal_){
             RCLCPP_INFO(this->get_logger(), "Waiting for Navigation Gaol...");
         }
     }
+
     if(!debug && recieved_nav_goal_){
         navigation_action_client_->async_cancel_all_goals();
         RCLCPP_INFO(this->get_logger(), "Send cancel navigation to server");
     }
+
     rclcpp::sleep_for(1000ms);
-    addBehaviorStamedArray("WallTracking Start");
+    addBehaviorStamedArray("WallTracking Start", false);
     RCLCPP_INFO(this->get_logger(), "EXECUTE");
     const auto goal = goal_handle->get_goal();
     std::shared_ptr<WallTrackingAction::Feedback> feedback = std::make_shared<WallTrackingAction::Feedback>();
     auto result = std::make_shared<WallTrackingAction::Result>();
     wall_tracking_flg_ = true;
     rclcpp::Rate loop_rate(20);
-    while (rclcpp::ok()) {
-        if (goal_handle->is_canceling()) {
-            wall_tracking_flg_ = false;
-            result->get = false;
-            goal_handle->canceled(result);
-            pub_cmd_vel(0.0, 0.0);
-            addBehaviorStamedArray("WallTracking Cancel");
-            RCLCPP_INFO(this->get_logger(), "Goal Canceled");
-            if(!debug && recieved_nav_goal_){
-                navigation_action_client_->async_send_goal(nav_goal_msgs_, nav_send_goal_options_);
-                addBehaviorStamedArray("Navigation Resume");
-                RCLCPP_INFO(this->get_logger(), "Resume navigation");
-            }
-            return;
-        }
+    while (!goal_handle->is_canceling()) {
         feedback->open_place_arrived = open_place_;
         navigateOpenPlace();
         goal_handle->publish_feedback(feedback);
         loop_rate.sleep();
     }
-    if (rclcpp::ok()) {
-        result->get = true;
-        wall_tracking_flg_ = false;
-        goal_handle->succeed(result);
-        RCLCPP_INFO(this->get_logger(), "Goal Succeded");
+    RCLCPP_INFO(this->get_logger(), "Goal Canceled");
+    wall_tracking_flg_ = false;
+    result->get = false;
+    goal_handle->canceled(result);
+    pub_cmd_vel(0.0, 0.0);
+    addBehaviorStamedArray("WallTracking Cancel", true);
+    if(!debug && recieved_nav_goal_){
+        navigation_action_client_->async_send_goal(nav_goal_msgs_, nav_send_goal_options_);
+        addBehaviorStamedArray("Navigation Resume", false);
+        RCLCPP_INFO(this->get_logger(), "Resume navigation");
     }
+    // if (rclcpp::ok()) {
+    //     result->get = true;
+    //     wall_tracking_flg_ = false;
+    //     goal_handle->succeed(result);
+    //     pub_cmd_vel(0.0, 0.0);
+    //     RCLCPP_INFO(this->get_logger(), "Goal Succeded");
+    // }
 }
 
 } // namespace WallTracking

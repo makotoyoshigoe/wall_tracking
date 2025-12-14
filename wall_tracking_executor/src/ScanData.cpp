@@ -48,7 +48,6 @@ void ScanData::dataUpdate(sensor_msgs::msg::LaserScan::ConstSharedPtr msg)
         ranges_[i] = range_min > msg->ranges[i] || msg->ranges[i] > range_max ? 
                       range_max : msg->ranges[i];
     }
-    tmp_scan_msg_ = msg;
 }
 
 // 明日：平均と分散を返すように変更

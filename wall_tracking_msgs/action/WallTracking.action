@@ -1,5 +1,5 @@
 # Goal
-bool start
+bool debug 
 ---
 # Result
 bool get

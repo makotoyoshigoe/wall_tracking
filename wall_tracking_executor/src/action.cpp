@@ -22,18 +22,19 @@ void WallTracking::resultCallback(const GoalHandleNavigateToPose::WrappedResult 
       case rclcpp_action::ResultCode::SUCCEEDED:
         recieved_nav_goal_ = false;
         RCLCPP_INFO(this->get_logger(), "Goal succeeded!");
-        addBehaviorStamedArray("Navigation Succeeded");
+        addBehaviorStamedArray("Navigation Succeeded", false);
         behaviorStampedPub();
         // RCLCPP_INFO(this->get_logger(), "Recieved nav goal: %d", recieved_nav_goal_);
         break;
       case rclcpp_action::ResultCode::ABORTED:
         RCLCPP_WARN(this->get_logger(), "Goal was aborted");
-        addBehaviorStamedArray("Navigation Aborted");
+        addBehaviorStamedArray("Navigation Aborted", false);
         behaviorStampedPub();
         break;
       case rclcpp_action::ResultCode::CANCELED:
         RCLCPP_WARN(this->get_logger(), "Goal was canceled");
-        addBehaviorStamedArray("Navigation canceled");
+        addBehaviorStamedArray("Navigation canceled", false);
+        behaviorStampedPub();
         // recieved_nav_goal_ = true;
         break;
       default:

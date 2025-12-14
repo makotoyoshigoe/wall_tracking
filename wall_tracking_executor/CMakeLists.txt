@@ -13,6 +13,7 @@ ament_auto_add_executable(wall_tracking_node
   src/main.cpp
   src/wall_tracking_node.cpp
   src/action.cpp
+  src/tf.cpp
   src/ScanData.cpp
   src/controller.cpp
   src/potential_controller.cpp

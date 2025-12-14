@@ -16,7 +16,6 @@ class ScanData
 {
 private:
     std::string frame_id_;
-    sensor_msgs::msg::LaserScan::ConstSharedPtr tmp_scan_msg_;
 
 public:
     ScanData(void);
