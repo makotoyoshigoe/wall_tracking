@@ -18,7 +18,6 @@ WallTracking::WallTracking() : Node("wall_tracking_node")
 {
     set_param();
     get_param();
-    init_variable();
     init_sub();
     init_pub();
     init_action();
@@ -30,26 +29,6 @@ WallTracking::~WallTracking()
 
 void WallTracking::set_param()
 {
-    declare_parameter("max_linear_vel", 0.0);
-    declare_parameter("max_angular_vel", 0.0);
-    declare_parameter("min_angular_vel", 0.0);
-    declare_parameter("distance_from_wall", 0.0);
-    declare_parameter("distance_to_stop", 0.0);
-    declare_parameter("sampling_rate", 0.0);
-    declare_parameter("kp", 0.0);
-    declare_parameter("ki", 0.0);
-    declare_parameter("kd", 0.0);
-    declare_parameter("start_deg_lateral", 0.);
-    declare_parameter("end_deg_lateral", 0.);
-    declare_parameter("stop_ray_th", 0.0);
-    declare_parameter("wheel_separation", 0.0);
-    declare_parameter("distance_to_skip", 0.0);
-    declare_parameter("open_place_distance", 0.0);
-    declare_parameter("select_angvel", std::vector<double>(2, 0.0));
-    declare_parameter("detection_div_deg", std::vector<double>(2, 0.0));
-    declare_parameter("front_search_angle_start", -15.);
-    declare_parameter("front_search_angle_end", 15.);
-
     // Parameters for Controller
     declare_parameter("wt_controller.linear_vel.max", 0.2);
     declare_parameter("wt_controller.angular_vel.max", 1.0);
@@ -60,6 +39,7 @@ void WallTracking::set_param()
     declare_parameter("wt_controller.search_angle.side.end", 80.);
     declare_parameter("wt_controller.obstacle_avoidance_threshold", 0.6);
     declare_parameter("wt_controller.target_wall_distance", 0.5);
+    declare_parameter("wt_controller.variance_threshold", 0.2);
 
     // Parameters for PotentialController
     declare_parameter("potential.critical_distance", 30.0);
@@ -74,28 +54,17 @@ void WallTracking::set_param()
     declare_parameter("open_place_checker.detect_angle_division_num", 5);
     declare_parameter("open_place_checker.range_th", 15.0);
     declare_parameter("open_place_checker.ratio_th", 0.7);
+
+    // Parameters for Open Place Arrived Checker
+    declare_parameter("open_place_arrived_checker.detect_angle_start", -90.0);
+    declare_parameter("open_place_arrived_checker.detect_angle_end", 90.0);
+    declare_parameter("open_place_arrived_checker.detect_angle_division_num", 1);
+    declare_parameter("open_place_arrived_checker.range_th", 15.0);
+    declare_parameter("open_place_arrived_checker.ratio_th", 0.7);
 }
 
 void WallTracking::get_param()
 {
-    // this->get_parameter("max_linear_vel", max_linear_vel_);
-    // this->get_parameter("max_angular_vel", max_angular_vel_);
-    // this->get_parameter("min_angular_vel", min_angular_vel_); // will delete
-    // this->get_parameter("distance_from_wall", distance_from_wall_);
-    // this->get_parameter("distance_to_stop", distance_to_stop_);
-    // this->get_parameter("sampling_rate", sampling_rate_); // will delete
-    // this->get_parameter("kp", kp_);
-    // this->get_parameter("ki", ki_); // will delete
-    // this->get_parameter("kd", kd_); // will delete
-    // this->get_parameter("start_deg_lateral", start_deg_lateral_);
-    // this->get_parameter("end_deg_lateral", end_deg_lateral_);
-    // this->get_parameter("stop_ray_th", stop_ray_th_);
-    // this->get_parameter("wheel_separation", wheel_separation_);
-    // this->get_parameter("distance_to_skip", distance_to_skip_);
-    // this->get_parameter("open_place_distance", open_place_distance_);
-    // this->get_parameter("detection_div_deg", detection_div_deg_);
-    // this->get_parameter("select_angvel", select_angvel_);
-
     // For Controller
     float lin_max_vel = get_parameter("wt_controller.linear_vel.max").as_double();
     float ang_max_vel = get_parameter("wt_controller.angular_vel.max").as_double();
@@ -106,6 +75,7 @@ void WallTracking::get_param()
     float side_search_angle_end = get_parameter("wt_controller.search_angle.side.end").as_double() * M_PI / 180.;
     float obs_avoid_th = get_parameter("wt_controller.obstacle_avoidance_threshold").as_double();
     float target_wall_dist = get_parameter("wt_controller.target_wall_distance").as_double();
+    float var_th = get_parameter("wt_controller.variance_threshold").as_double();
     controller_.reset(new Controller(
         lin_max_vel, 
         ang_max_vel, 
@@ -115,7 +85,8 @@ void WallTracking::get_param()
         side_search_angle_start, 
         side_search_angle_end, 
         obs_avoid_th, 
-        target_wall_dist));
+        target_wall_dist, 
+        var_th > 0.001 ? var_th : 0.001));
 
     // For Potential Controller
     float critical_distance = get_parameter("potential.critical_distance").as_double(); 
@@ -140,6 +111,20 @@ void WallTracking::get_param()
         range_th, 
         ratio_th
     ));
+
+    // For Open Place Chekcker
+    detect_angle_start = get_parameter("open_place_arrived_checker.detect_angle_start").as_double() * M_PI / 180.0;
+    detect_angle_end = get_parameter("open_place_arrived_checker.detect_angle_end").as_double() * M_PI / 180.0;
+    detect_angle_division_num = get_parameter("open_place_arrived_checker.detect_angle_division_num").as_int();
+    range_th = get_parameter("open_place_arrived_checker.range_th").as_double();
+    ratio_th = get_parameter("open_place_arrived_checker.ratio_th").as_double();
+    open_place_arrived_checker_.reset(new OpenPlaceArrivedChecker(
+        detect_angle_start, 
+        detect_angle_end, 
+        detect_angle_division_num, 
+        range_th, 
+        ratio_th
+    ));
 }
 
 void WallTracking::init_sub()
@@ -150,9 +135,9 @@ void WallTracking::init_sub()
     gnss_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
         "gnss/fix", rclcpp::QoS(10),
         std::bind(&WallTracking::gnss_callback, this, std::placeholders::_1));
-    gnss_pose_with_covariance_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
-        "gnss_pose_with_covariance", rclcpp::QoS(10),
-        std::bind(&WallTracking::gnss_pose_with_covariance_callback, this, std::placeholders::_1));
+    // gnss_pose_with_covariance_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+    //     "gnss_pose_with_covariance", rclcpp::QoS(10),
+    //     std::bind(&WallTracking::gnss_pose_with_covariance_callback, this, std::placeholders::_1));
     goal_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         "goal_pose", rclcpp::QoS(1),
         std::bind(&WallTracking::goal_pose_callback, this, std::placeholders::_1));
@@ -200,23 +185,6 @@ void WallTracking::behaviorStampedPub(void)
     behavior_stamped_array_.clear();
 }
 
-void WallTracking::init_variable()
-{
-    ei_ = 0.0;
-    fwc_deg_ = RAD2DEG(atan2f(-wheel_separation_ / 2, distance_to_stop_));
-    float y = distance_from_wall_, x = distance_to_skip_;
-    x += distance_from_wall_ / tan(DEG2RAD(start_deg_lateral_));
-    flw_deg_ = RAD2DEG(atan2(y, x));
-    open_place_ = false;
-    outdoor_ = false;
-    init_scan_data_ = false;
-    vel_open_place_ = max_linear_vel_ / 3;
-    cmd_vel_ = max_linear_vel_;
-    wall_tracking_flg_ = false;
-    pre_e_ = 0.;
-    gnss_nan_ = true;
-}
-
 void WallTracking::pub_cmd_vel(float linear_x, float angular_z)
 {
     geometry_msgs::msg::Twist cmd_vel;
@@ -228,7 +196,7 @@ void WallTracking::pub_cmd_vel(float linear_x, float angular_z)
     cmd_vel_pub_->publish(cmd_vel);
 }
 
-void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg) 
+void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg)
 {
     if (!init_scan_data_) {
         scan_data_.reset(new ScanData());
@@ -254,48 +222,11 @@ void WallTracking::goal_pose_callback(geometry_msgs::msg::PoseStamped::ConstShar
 	if(!wall_tracking_flg_) navigation_action_client_->async_send_goal(nav_goal_msgs_, nav_send_goal_options_);
 }
 
-void  WallTracking::gnss_pose_with_covariance_callback(geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg)
-{
-    if(std::isnan(msg->pose.pose.position.x) && std::isnan(msg->pose.pose.position.y)) gnss_nan_ = true;
-    else gnss_nan_ = false;
-}
-
-float WallTracking::lateral_pid_control(float input)
-{
-    float e = input - distance_from_wall_;
-    ei_ += e * sampling_rate_;
-    float ed = (e - pre_e_) / sampling_rate_;
-    pre_e_ = e;
-    return e * kp_ + ei_ * ki_ + ed * kd_;
-}
-
-void WallTracking::turn()
-{
-    geometry_msgs::msg::Twist msg;
-    msg.linear.x = 0.0;
-    msg.angular.z = DEG2RAD(-45);
-    cmd_vel_pub_->publish(msg);
-    rclcpp::sleep_for(100ms);
-}
-
-void WallTracking::wallTracking()
-{
-    // RCLCPP_INFO(this->get_logger(), "wall tracking");
-    float gap_th = distance_from_wall_;
-    bool gap_start = scan_data_->conflictCheck(start_deg_lateral_, gap_th);
-    bool gap_end = scan_data_->conflictCheck(90., gap_th);
-    bool front_left_wall = scan_data_->thresholdCheck(flw_deg_, 1.91);
-    if ((gap_start || gap_end) && !front_left_wall &&
-        !scan_data_->noiseCheck(flw_deg_)) {
-        pub_cmd_vel(cmd_vel_, 0.0);
-        // RCLCPP_INFO(get_logger(), "skip");
-    } else {
-        double lateral_mean = scan_data_->leftWallCheck(start_deg_lateral_, end_deg_lateral_);
-        double angular_z = lateral_pid_control(lateral_mean);
-        pub_cmd_vel(cmd_vel_, angular_z);
-        // RCLCPP_INFO(get_logger(), "range: %lf", lateral_mean);
-    }
-}
+// void  WallTracking::gnss_pose_with_covariance_callback(geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg)
+// {
+//     if(std::isnan(msg->pose.pose.position.x) && std::isnan(msg->pose.pose.position.y)) gnss_nan_ = true;
+//     else gnss_nan_ = false;
+// }
 
 void WallTracking::navigateOpenPlace() 
 {
@@ -312,18 +243,22 @@ void WallTracking::navigateOpenPlace()
         cmd_vel = controller_->get_cmd_vel();
     }else{
         open_place_checker_->set_scan(tmp_scan);
-        if(open_place_checker_->is_open_place_available()){
-            // If available, calculate cmd_vel by PotentialController
-            RCLCPP_INFO(get_logger(), "Open place detected. Calculate cmd_vel.");
-            open_place_ = true;
+        if(open_place_checker_->open_place_detectable()){
+            // If detectable, calculate cmd_vel by PotentialController
+            RCLCPP_DEBUG(get_logger(), "Open place detected. Calculate cmd_vel.");
+            open_place_arrived_checker_->set_scan(tmp_scan);
+            open_place_ = open_place_arrived_checker_->open_place_arrived();
+            if(open_place_) RCLCPP_DEBUG(get_logger(), "Arrived Open place.");
+            float lin_vel_coeff = 1 - 0.5 * open_place_;
+
             std::array<float, 3> open_laser_info = open_place_checker_->get_open_laser_info();
             // potential_controller_->set_scan(debug_ ? tmp_scan : tmp_integ_scan);
             potential_controller_->set_scan(tmp_scan);
-            cmd_vel = potential_controller_->get_cmd_vel(open_laser_info);
+            cmd_vel = potential_controller_->get_cmd_vel(open_laser_info, lin_vel_coeff);
             detection_res = "Detect open place";
         }else{
-            // If not available, wall tracking
-            RCLCPP_WARN(get_logger(), "No open place detected. Wall following.");
+            // If not detectable, wall tracking
+            RCLCPP_DEBUG(get_logger(), "No open place detected. Wall following.");
             // controller_->set_scan(debug_ ? tmp_scan : tmp_integ_scan);
             cmd_vel = controller_->get_cmd_vel();
         }

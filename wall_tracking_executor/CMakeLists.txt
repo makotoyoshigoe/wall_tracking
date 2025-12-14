@@ -17,6 +17,7 @@ ament_auto_add_executable(wall_tracking_node
   src/controller.cpp
   src/potential_controller.cpp
   src/open_place_checker.cpp
+  src/open_place_arrived_checker.cpp
 )
 
 if(BUILD_TESTING)

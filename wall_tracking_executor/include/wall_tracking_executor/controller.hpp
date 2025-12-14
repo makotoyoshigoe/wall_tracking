@@ -17,7 +17,8 @@ class Controller{
         float side_search_angle_start, 
         float side_search_angle_end, 
         float obs_avoid_th, 
-        float target_wall_dist
+        float target_wall_dist, 
+        float var_th
     );
     void set_scan(
         std::shared_ptr<ScanData> & scan);
@@ -25,7 +26,6 @@ class Controller{
     std::array<float, 2> wall_tracking(void);
     std::array<float, 2> open_place_navigation(void);
     ~Controller();
-    float get_lin_vel(float ave_front);
     float get_ang_vel(float side_ave);
 
     private:
@@ -38,6 +38,9 @@ class Controller{
         float side_search_angle_end_;
         float obs_avoid_th_;
         float target_wall_dist_;
+        float var_th_;
+        float range_th_;
+
         std::shared_ptr<ScanData> scan_;
         bool outdoor_;
 };

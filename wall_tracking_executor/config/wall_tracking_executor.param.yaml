@@ -1,18 +1,18 @@
 /**:
   ros__parameters:
     wt_controller:
-      kp: 10.0
+      kp: 12.0
       linear_vel:
         max: 0.2
       angular_vel:
         max: 1.0
       search_angle:
         front:
-          start: -25.0
-          end: 25.0
+          start: -30.0
+          end: 30.0
         side:
           start: 69.0
-          end: 80.0
+          end: 89.0
       obstacle_avoidance_threshold: 0.4
       target_wall_distance: 0.6
 
@@ -30,5 +30,13 @@
       detect_angle_start: -45.0
       detect_angle_end: 45.0
       detect_angle_division_num: 5
+      range_th: 15.0
+      ratio_th: 0.7
+
+    # Open place checker
+    open_place_arrived_checker:
+      detect_angle_start: -90.0
+      detect_angle_end: 90.0
+      detect_angle_division_num: 1
       range_th: 15.0
       ratio_th: 0.7

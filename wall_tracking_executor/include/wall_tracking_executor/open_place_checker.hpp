@@ -19,12 +19,12 @@ class OpenPlaceChecker{
         float ratio_th);
     ~OpenPlaceChecker();
     void set_scan(std::shared_ptr<ScanData> & scan);
-    bool is_open_place_available(void);
+    bool open_place_detectable(void);
     std::array<float, 3> get_open_laser_info(void);
     // {a_s: angle start, a_e: angle end} of sector
-    std::array<float, 3> compute_sector_info(float a_s, float a_e); 
+    std::vector<std::array<float, 3>> compute_sector_infos(void);
 
-    private:
+    protected:
     float detect_angle_start_;
     float detect_angle_end_;
     int detect_angle_division_num_;

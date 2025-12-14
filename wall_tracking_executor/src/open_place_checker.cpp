@@ -38,81 +38,96 @@ void OpenPlaceChecker::set_scan(std::shared_ptr<ScanData> & scan)
     //     scan_->frame_id_.c_str(), scan_->angle_min_*180.0/M_PI, scan_->angle_max_*180.0/M_PI, scan_->angle_increment_*180.0/M_PI, scan_->range_min_, scan_->range_max_, scan_->ranges_.size());
 }
 
-bool OpenPlaceChecker::is_open_place_available(void)
+bool OpenPlaceChecker::open_place_detectable(void)
 {
     // Scan info
-    float angle_increment = scan_->angle_increment_;
-    auto angle_min = scan_->angle_min_;
+    // float angle_increment = scan_->angle_increment_;
+    // auto angle_min = scan_->angle_min_;
 
     // Define for storing scores
-    float max_ratio_score = -1.0f;
+    std::vector<std::array<float, 3>> sector_infos = compute_sector_infos();
+    open_laser_info_ = sector_infos[0];
 
-    open_laser_info_ = {division_angles_[0][0], 0., -1.0};
+    // Define for storing scores
+    // float max_ratio_score = -1.0f;
+    // std::array<float, 3> open_laser_info = sector_infos[0];
+
+    // open_laser_info_ = {division_angles_[0][0], 0., -1.0};
 
     // Evaluate each sector
-    for(auto angles : division_angles_){
+    for(size_t i=1; i < sector_infos.size(); ++i){
+    // for(auto angles : division_angles_){
         // Get sector info
         // RCLCPP_INFO(rclcpp::get_logger("wall_tracking_executor"), 
         //     "start: %f, end: %f", angles[0], angles[1]);
         // [0]: direction, [1]: distance, [2]: ratio score
-        std::array<float, 3> tmp_sector_info = compute_sector_info(angles[0], angles[1]);
-        RCLCPP_INFO(rclcpp::get_logger("wall_tracking_executor"), 
-            "direction: %f, distance: %f, ratio: %f", 
-            tmp_sector_info[0], tmp_sector_info[1], tmp_sector_info[2]);
+        std::array<float, 3> tmp_sector_info = sector_infos[i];
+        // RCLCPP_INFO(rclcpp::get_logger("wall_tracking_executor"), 
+        //     "direction: %f, distance: %f, ratio: %f", 
+        //     tmp_sector_info[0], tmp_sector_info[1], tmp_sector_info[2]);
         // Compare temporary scores and max scores
         // tmp_sector_ratio is higher than max_ratio_score
-        bool higher_than_max = tmp_sector_info[2] > max_ratio_score;
+        bool higher_than_max = tmp_sector_info[2] > open_laser_info_[2];
 
         // tmp_sector_ratio is same as max_ratio_score
         // tmp_representative_angle absolute value is closer to zero than max_representative_angle
-        bool same_and_near_zero_than_max = (tmp_sector_info[2] == max_ratio_score) && 
+        bool same_and_near_zero_than_max = (tmp_sector_info[2] == open_laser_info_[2]) && 
             (std::abs(tmp_sector_info[0]) < std::abs(open_laser_info_[0]));
         
         if(higher_than_max || same_and_near_zero_than_max){
-            max_ratio_score = tmp_sector_info[2];
+            // open_laser_info_[2] = tmp_sector_info[2];
             std::copy(tmp_sector_info.begin(), tmp_sector_info.end(), open_laser_info_.begin());
         }
     }
-    RCLCPP_INFO(rclcpp::get_logger("wall_tracking_executor"), 
+    RCLCPP_DEBUG(rclcpp::get_logger("wall_tracking_node"), 
         "Max Score = {direction: %f, distance: %f, ratio: %f}", 
         open_laser_info_[0], open_laser_info_[1], open_laser_info_[2]);
     // if max score is less than ratio_th, return false
-    if(max_ratio_score < ratio_th_) return false; // No open
+    if(open_laser_info_[2] < ratio_th_) return false; // No open place
     else return true;
 }
 
-std::array<float, 3> OpenPlaceChecker::compute_sector_info(
-    float a_s, float a_e) // {a_s: angle start, a_e: angle end} of sector
+// {a_s: angle start, a_e: angle end} of sector
+std::vector<std::array<float, 3>> OpenPlaceChecker::compute_sector_infos(void)
 {
-    // Compute representative angle of the sector
-    float representative_angle = (a_s + a_e) / 2.0f;
+    std::vector<std::array<float, 3>> sector_infos;
+    sector_infos.reserve(detect_angle_division_num_);
 
-    // Get indices
-    float start = a_s, end = a_e;
-    size_t i_s= scan_->rad2index(a_s); 
-    size_t i_e= scan_->rad2index(a_e);
-        
-    // Compute average range and ratio score
-    float sum_l=0.0f, sum_n=0.0f, sum_i=0.0f;
-    for(size_t i=i_s; i<=i_e; ++i){
-        float range = scan_->ranges_[i];
-        if(!std::isnan(range)){
-            if(range >= range_th_){
-                sum_l += range;
-                ++sum_n;
+    // Evaluate each sector
+    for(auto angles : division_angles_){
+        // Compute representative angle of the sector
+        float a_s = angles[0], a_e = angles[1];
+        float representative_angle = (a_s + a_e) / 2.0f;
+
+        // Get indices
+        size_t i_s= scan_->rad2index(a_s); 
+        size_t i_e= scan_->rad2index(a_e);
+            
+        // Compute average range and ratio score
+        float sum_l=0.0f, sum_n=0.0f, sum_i=0.0f;
+        for(size_t i=i_s; i<=i_e; ++i){
+            float range = scan_->ranges_[i];
+            if(!std::isnan(range)){
+                if(range >= range_th_){
+                    sum_l += range;
+                    ++sum_n;
+                }
+                ++sum_i;
             }
-            ++sum_i;
         }
+        // RCLCPP_INFO(rclcpp::get_logger("wall_tracking_executor"), 
+        //     "direction: %f, sum_l: %f, sum_n: %f, sum_i: %f", 
+        //     representative_angle, sum_l, sum_n, sum_i);
+
+        // [0]: direction, [1]: distance, [2]: ratio score
+        std::array<float, 3> sector_info = {
+            representative_angle, 
+            sum_n > 0.f ? static_cast<float>(sum_l / sum_n) : 0.f, 
+            sum_i > 0.f ? static_cast<float>(sum_n / sum_i) : 0.f
+        };
+        sector_infos.emplace_back(sector_info);
     }
-    // RCLCPP_INFO(rclcpp::get_logger("wall_tracking_executor"), 
-    //     "direction: %f, sum_l: %f, sum_n: %f, sum_i: %f", 
-    //     representative_angle, sum_l, sum_n, sum_i);
-    // [0]: direction, [1]: distance, [2]: ratio score
-    return {
-        representative_angle,
-        sum_n > 0 ? static_cast<float>(sum_l / sum_n) : 0., 
-        sum_i > 0 ? static_cast<float>(sum_n / sum_i) : 0.,
-    };
+    return sector_infos;
 }
 
 // [0]: direction, [1]: distance, [2]: ratio score
