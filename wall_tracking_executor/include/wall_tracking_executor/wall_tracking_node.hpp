@@ -122,7 +122,12 @@ private:
     std::shared_ptr<OpenPlaceArrivedChecker> open_place_arrived_checker_;
 	bool wall_tracking_flg_;
 	bool recieved_nav_goal_;
+    int reseted_pose_watch_time_;
     std::string map_frame_id_;
+
+    bool publish_reseted_pose_;
+    int watch_time_;
+    std::chrono::system_clock::time_point watch_timer_start_;
 };
 
 } // namespace WallTracking

@@ -32,13 +32,13 @@ std::optional<geometry_msgs::msg::Pose2D> WallTracking::get_parts_pose_in_map(
     std::string frame_id)
 {
     geometry_msgs::msg::PoseStamped ident;
-	ident.header.frame_id = map_frame_id_;
+	ident.header.frame_id = frame_id;
 	ident.header.stamp = rclcpp::Time(0);
 	tf2::toMsg(tf2::Transform::getIdentity(), ident.pose);
 
 	geometry_msgs::msg::PoseStamped odom_pose;
 	try {
-		this->tf_buffer_->transform(ident, odom_pose, frame_id);
+		this->tf_buffer_->transform(ident, odom_pose, map_frame_id_);
 	} catch (tf2::TransformException & e) {
 		RCLCPP_WARN(
 		  get_logger(), "Failed to compute parts pose, skipping scan (%s)", e.what());
