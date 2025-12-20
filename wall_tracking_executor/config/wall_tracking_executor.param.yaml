@@ -3,7 +3,7 @@
     wt_controller:
       kp: 12.0
       linear_vel:
-        max: 0.2
+        max: 0.4
       angular_vel:
         max: 1.0
       search_angle:
@@ -12,8 +12,13 @@
           end: 30.0
         side:
           start: 69.0
-          end: 89.0
-      obstacle_avoidance_threshold: 0.4
+          end: 80.0
+        rotating_abs:
+          start: 85.0
+          end: 90.0
+      obstacle_distance_threshold:
+        slow_down: 0.6
+        stop: 0.6
       target_wall_distance: 0.6
 
     # Potential controller

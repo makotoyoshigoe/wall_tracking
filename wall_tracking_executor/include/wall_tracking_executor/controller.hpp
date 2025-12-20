@@ -16,7 +16,10 @@ class Controller{
         float front_search_angle_end, 
         float side_search_angle_start, 
         float side_search_angle_end, 
-        float obs_avoid_th, 
+        float rotating_search_angle_abs_small, 
+        float rotating_search_angle_abs_big, 
+        float slow_down_obs_th, 
+        float stop_obs_th, 
         float target_wall_dist, 
         float var_th
     );
@@ -36,13 +39,18 @@ class Controller{
         float front_search_angle_end_;
         float side_search_angle_start_; 
         float side_search_angle_end_;
-        float obs_avoid_th_;
+        float rotating_search_angle_abs_small_;
+        float rotating_search_angle_abs_big_;
+        float slow_down_obs_th_;
+        float stop_obs_th_;
         float target_wall_dist_;
         float var_th_;
         float range_th_;
 
         std::shared_ptr<ScanData> scan_;
         bool outdoor_;
+        bool rotating_;
+        bool rotate_right_;
 };
 
 }

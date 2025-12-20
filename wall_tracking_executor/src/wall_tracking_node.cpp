@@ -17,7 +17,7 @@ namespace WallTracking {
 WallTracking::WallTracking() : Node("wall_tracking_node"), 
 init_scan_data_(false), 
 init_tf_(false), 
-publish_reseted_pose_(false)
+publish_resetted_pose_(false)
 {
     set_param();
     get_param();
@@ -44,7 +44,10 @@ void WallTracking::set_param()
     declare_parameter("wt_controller.search_angle.front.end", 20.);
     declare_parameter("wt_controller.search_angle.side.start", 69.);
     declare_parameter("wt_controller.search_angle.side.end", 80.);
-    declare_parameter("wt_controller.obstacle_avoidance_threshold", 0.6);
+    declare_parameter("wt_controller.search_angle.rotating_abs.start", 88.);
+    declare_parameter("wt_controller.search_angle.rotating_abs.end", 90.);
+    declare_parameter("wt_controller.obstacle_distance_threshold.slow_down", 1.0);
+    declare_parameter("wt_controller.obstacle_distance_threshold.stop", 0.4);
     declare_parameter("wt_controller.target_wall_distance", 0.5);
     declare_parameter("wt_controller.variance_threshold", 0.2);
 
@@ -84,9 +87,13 @@ void WallTracking::get_param()
     float front_search_angle_end = get_parameter("wt_controller.search_angle.front.end").as_double() * M_PI / 180.;
     float side_search_angle_start = get_parameter("wt_controller.search_angle.side.start").as_double() * M_PI / 180.;
     float side_search_angle_end = get_parameter("wt_controller.search_angle.side.end").as_double() * M_PI / 180.;
-    float obs_avoid_th = get_parameter("wt_controller.obstacle_avoidance_threshold").as_double();
+    float rotating_search_angle_abs_small = get_parameter("wt_controller.search_angle.rotating_abs.start").as_double() * M_PI / 180.;
+    float rotating_search_angle_abs_big = get_parameter("wt_controller.search_angle.rotating_abs.end").as_double() * M_PI / 180.;
+    float slow_down_obs_th = get_parameter("wt_controller.obstacle_distance_threshold.slow_down").as_double();
+    float stop_obs_th = get_parameter("wt_controller.obstacle_distance_threshold.stop").as_double();
     float target_wall_dist = get_parameter("wt_controller.target_wall_distance").as_double();
     float var_th = get_parameter("wt_controller.variance_threshold").as_double();
+    slow_down_obs_th = target_wall_dist;
     controller_.reset(new Controller(
         lin_max_vel, 
         ang_max_vel, 
@@ -95,7 +102,10 @@ void WallTracking::get_param()
         front_search_angle_end, 
         side_search_angle_start, 
         side_search_angle_end, 
-        obs_avoid_th, 
+        rotating_search_angle_abs_small, 
+        rotating_search_angle_abs_big, 
+        slow_down_obs_th, 
+        stop_obs_th, 
         target_wall_dist, 
         var_th > 0.001 ? var_th : 0.001));
 
@@ -220,12 +230,12 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
     }
     scan_data_->dataUpdate(msg);
     scan_msg_ = msg;
-    if(publish_reseted_pose_){
+    if(publish_resetted_pose_){
         int64_t time_diff = std::chrono::duration_cast<std::chrono::seconds >(
 			std::chrono::system_clock::now() - watch_timer_start_).count();
         if(time_diff > watch_time_){
-            addBehaviorStamedArray("Publish Resetting Pose", true);
-            publish_reseted_pose_ = false;
+            addBehaviorStamedArray("Publish Resetting Pose");
+            publish_resetted_pose_ = false;
         }
 	}
 }
@@ -241,7 +251,7 @@ void WallTracking::goal_pose_callback(geometry_msgs::msg::PoseStamped::ConstShar
     if(!init_tf_) init_tf();
     nav_goal_msgs_.pose = *msg;
     behavior_stamped_array_.clear();
-    addBehaviorStamedArray("Navigation Start", false);
+    addBehaviorStamedArray("Navigation Start");
     recieved_nav_goal_ = true;
     RCLCPP_INFO(this->get_logger(), "Recieved nav goal: %d", recieved_nav_goal_);
 	if(!wall_tracking_flg_) navigation_action_client_->async_send_goal(nav_goal_msgs_, nav_send_goal_options_);
@@ -289,8 +299,7 @@ void WallTracking::navigateOpenPlace()
     pub_open_place_detection(detection_res);
 }
 
-void WallTracking::addBehaviorStamedArray(
-    std::string behavior_name, bool after_resetting)
+void WallTracking::addBehaviorStamedArray(std::string behavior_name)
 {
     wall_tracking_msgs::msg::BehaviorStamped tmp_behavior_stamped;
     tmp_behavior_stamped.behavior_name = behavior_name;
@@ -338,7 +347,7 @@ void WallTracking::execute(
     }
 
     rclcpp::sleep_for(1000ms);
-    addBehaviorStamedArray("WallTracking Start", false);
+    addBehaviorStamedArray("WallTracking Start");
     RCLCPP_INFO(this->get_logger(), "EXECUTE");
     const auto goal = goal_handle->get_goal();
     std::shared_ptr<WallTrackingAction::Feedback> feedback = std::make_shared<WallTrackingAction::Feedback>();
@@ -355,15 +364,16 @@ void WallTracking::execute(
     result->get = false;
     goal_handle->canceled(result);
     pub_cmd_vel(0.0, 0.0);
-    addBehaviorStamedArray("WallTracking Cancel", false);
-    publish_reseted_pose_ = true;
+    addBehaviorStamedArray("WallTracking Cancel");
+    publish_resetted_pose_ = true;
     watch_timer_start_ = std::chrono::system_clock::now();
 
     if(!debug && recieved_nav_goal_){
         navigation_action_client_->async_send_goal(nav_goal_msgs_, nav_send_goal_options_);
-        addBehaviorStamedArray("Navigation Resume", false);
+        addBehaviorStamedArray("Navigation Resume");
         RCLCPP_INFO(this->get_logger(), "Resume navigation");
     }
+    if(debug) behaviorStampedPub();
     // if (rclcpp::ok()) {
     //     result->get = true;
     //     wall_tracking_flg_ = false;

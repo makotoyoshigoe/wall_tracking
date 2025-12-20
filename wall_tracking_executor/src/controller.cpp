@@ -15,7 +15,10 @@ Controller::Controller(
     float front_search_angle_end, 
     float side_search_angle_start, 
     float side_search_angle_end, 
-    float obs_avoid_th, 
+    float rotating_search_angle_abs_small, 
+    float rotating_search_angle_abs_big, 
+    float slow_down_obs_th, 
+    float stop_obs_th, 
     float target_wall_dist, 
     float var_th
 )
@@ -26,12 +29,16 @@ Controller::Controller(
   front_search_angle_end_(front_search_angle_end), 
   side_search_angle_start_(side_search_angle_start), 
   side_search_angle_end_(side_search_angle_end), 
-  obs_avoid_th_(obs_avoid_th), 
+  rotating_search_angle_abs_small_(rotating_search_angle_abs_small), 
+  rotating_search_angle_abs_big_(rotating_search_angle_abs_big), 
+  slow_down_obs_th_(slow_down_obs_th),
+  stop_obs_th_(stop_obs_th), 
   target_wall_dist_(target_wall_dist), 
   var_th_(var_th), 
-  range_th_(obs_avoid_th+target_wall_dist)
+  range_th_(stop_obs_th+target_wall_dist),
+  rotating_(false), 
+  rotate_right_(false)
 {
-
 }
 
 void Controller::set_scan(std::shared_ptr<ScanData> & scan){scan_ = scan;}
@@ -46,11 +53,20 @@ std::array<float, 2> Controller::get_cmd_vel(void)
     float min_ang = min_front_laser[0];
     float min_range = min_front_laser[1];
     // RCLCPP_INFO(rclcpp::get_logger("lsa_nav_controller"), "min range: %f", min_range);
-    if(min_range < obs_avoid_th_){
+    if(min_range < slow_down_obs_th_){
         // RCLCPP_INFO(rclcpp::get_logger("lsa_nav_controller"), "Avoidance");
-        cur_cmd[0] = lin_max_vel_ * (fabs(cos(min_ang) * min_range) - 0.3) / obs_avoid_th_;
-        cur_cmd[1] = -ang_max_vel_;
+        cur_cmd[0] = lin_max_vel_ * (fabs(cos(min_ang) * min_range) - 0.3) / slow_down_obs_th_;
+        if(!rotating_) {
+            rotating_ = true;
+            float right_space = scan_->get_side_lat_stat(
+                -rotating_search_angle_abs_big_, -rotating_search_angle_abs_small_)[0];
+            float left_space = scan_->get_side_lat_stat(
+                rotating_search_angle_abs_small_, rotating_search_angle_abs_big_)[0];
+            rotate_right_ = right_space >= left_space;
+        }
+        cur_cmd[1] = rotate_right_ ? -ang_max_vel_ : ang_max_vel_;
     }else{
+        rotating_ = false;
         // get side lateral average
         // RCLCPP_INFO(rclcpp::get_logger("lsa_nav_controller"), "Wall Following");
         std::array<float, 2> side_stat 

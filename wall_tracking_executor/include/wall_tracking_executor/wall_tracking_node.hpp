@@ -84,7 +84,7 @@ protected:
 	void feedbackCallback([[maybe_unused]] typename std::shared_ptr<GoalHandleNavigateToPose>, 
 						[[maybe_unused]] const std::shared_ptr<const typename NavigateToPose::Feedback> feedback);
 	void resultCallback(const GoalHandleNavigateToPose::WrappedResult & result);
-	void addBehaviorStamedArray(std::string behavior_name, bool after_resetting);
+	void addBehaviorStamedArray(std::string behavior_name);
 	void behaviorStampedPub(void);
 
 private:
@@ -125,7 +125,7 @@ private:
     int reseted_pose_watch_time_;
     std::string map_frame_id_;
 
-    bool publish_reseted_pose_;
+    bool publish_resetted_pose_;
     int watch_time_;
     std::chrono::system_clock::time_point watch_timer_start_;
 };

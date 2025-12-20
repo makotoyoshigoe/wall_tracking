@@ -50,7 +50,7 @@ void ScanData::dataUpdate(sensor_msgs::msg::LaserScan::ConstSharedPtr msg)
     }
 }
 
-// 明日：平均と分散を返すように変更
+// [0]: 平均、[1]: 分散
 std::array<float, 2> ScanData::get_side_lat_stat(float start, float end)
 {
     size_t is = rad2index(start), ie = rad2index(end);
