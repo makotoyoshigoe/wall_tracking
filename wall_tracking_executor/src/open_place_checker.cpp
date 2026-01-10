@@ -133,6 +133,10 @@ std::vector<std::array<float, 3>> OpenPlaceChecker::compute_sector_infos(void)
 // [0]: direction, [1]: distance, [2]: ratio score
 std::array<float, 3> OpenPlaceChecker::get_open_laser_info(void){return open_laser_info_;}
 
+float OpenPlaceChecker::get_sector_angle_nomalize(void){
+    return open_laser_info_[0] / fabs(detect_angle_start_);
+}
+
 OpenPlaceChecker::~OpenPlaceChecker(){}
 
 } // namespace lsa_nav_controller

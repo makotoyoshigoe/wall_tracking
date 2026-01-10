@@ -42,6 +42,12 @@ std::array<float, 2> PotentialController::get_cmd_vel(
     return cmd_vel;
 }
 
+std::array<float, 2> PotentialController::get_cmd_vel(
+    float nomalize_angle)
+{
+    return {max_linear_vel_, nomalize_angle * fabs(max_angular_vel_)};
+}
+
 std::array<float, 2> PotentialController::force_to_cmd_vel(Force force)
 {
     float force_magnitude = hypotf(force.x, force.y); 

@@ -121,9 +121,11 @@ private:
     std::shared_ptr<OpenPlaceChecker> open_place_checker_;
     std::shared_ptr<OpenPlaceArrivedChecker> open_place_arrived_checker_;
 	bool wall_tracking_flg_;
-	bool recieved_nav_goal_;
+	bool received_nav_goal_;
     int reseted_pose_watch_time_;
     std::string map_frame_id_;
+    float gnss_sigma_th_;
+    // float gnss_sigma_;
 
     bool publish_resetted_pose_;
     int watch_time_;

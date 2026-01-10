@@ -35,6 +35,7 @@ void WallTracking::set_param()
     // Menber Variables
     declare_parameter("map_frame_id", "map");
     declare_parameter("watch_time", 2);
+    declare_parameter("gnss_sigma_th", 30.0);
 
     // Parameters for Controller
     declare_parameter("wt_controller.linear_vel.max", 0.2);
@@ -78,6 +79,7 @@ void WallTracking::get_param()
     // Member Variables
     map_frame_id_ = get_parameter("map_frame_id").as_string();
     watch_time_= get_parameter("watch_time").as_int();
+    gnss_sigma_th_ = get_parameter("gnss_sigma_th").as_double();
     
     // For Controller
     float lin_max_vel = get_parameter("wt_controller.linear_vel.max").as_double();
@@ -242,7 +244,10 @@ void WallTracking::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg
 
 void WallTracking::gnss_callback(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)
 {
-    outdoor_ = msg->position_covariance_type == msg->COVARIANCE_TYPE_UNKNOWN ? false : true;
+    if(msg->status.status != msg->status.STATUS_NO_FIX && msg->position_covariance[0] < gnss_sigma_th_){
+        outdoor_ = true;
+    }else outdoor_ = false;
+    // outdoor_ = msg->position_covariance_type == msg->COVARIANCE_TYPE_UNKNOWN ? false : true;
     // RCLCPP_INFO(this->get_logger(), "outdoor: %d", outdoor_);
 }
 
@@ -252,8 +257,8 @@ void WallTracking::goal_pose_callback(geometry_msgs::msg::PoseStamped::ConstShar
     nav_goal_msgs_.pose = *msg;
     behavior_stamped_array_.clear();
     addBehaviorStamedArray("Navigation Start");
-    recieved_nav_goal_ = true;
-    RCLCPP_INFO(this->get_logger(), "Recieved nav goal: %d", recieved_nav_goal_);
+    received_nav_goal_ = true;
+    RCLCPP_INFO(this->get_logger(), "Recieved nav goal: %d", received_nav_goal_);
 	if(!wall_tracking_flg_) navigation_action_client_->async_send_goal(nav_goal_msgs_, nav_send_goal_options_);
 }
 
@@ -285,7 +290,8 @@ void WallTracking::navigateOpenPlace()
             std::array<float, 3> open_laser_info = open_place_checker_->get_open_laser_info();
             // potential_controller_->set_scan(debug_ ? tmp_scan : tmp_integ_scan);
             potential_controller_->set_scan(tmp_scan);
-            cmd_vel = potential_controller_->get_cmd_vel(open_laser_info, lin_vel_coeff);
+            // cmd_vel = potential_controller_->get_cmd_vel(open_laser_info, lin_vel_coeff);
+            cmd_vel = potential_controller_->get_cmd_vel(open_place_checker_->get_sector_angle_nomalize());
             detection_res = "Detect open place";
         }else{
             // If not detectable, wall tracking
@@ -334,14 +340,20 @@ void WallTracking::execute(
     if(!init_tf_) init_tf();
     const auto debug = goal_handle->get_goal()->debug;
     rclcpp::Rate loop_rate(20);
-    if(!debug){
-        while(!recieved_nav_goal_){
-            RCLCPP_INFO(this->get_logger(), "Waiting for Navigation Gaol...");
-            loop_rate.sleep();
-        }
-    }
+    // if(!debug && !received_nav_goal_){
+    //     // while(!received_nav_goal_){
+    //     //     RCLCPP_INFO(this->get_logger(), "Waiting for Navigation Gaol...");
+    //     //     loop_rate.sleep();
+    //     // }
+    //     auto result = std::make_shared<WallTrackingAction::Result>();
+    //     result->get = false;
+    //     goal_handle->canceled(result);
+    //     RCLCPP_INFO(get_logger(), 
+    //         "Send Goal Cancel to Client because WallTracking Server did not Receive Navigation Goal...");
+    //     return;
+    // }
 
-    if(!debug && recieved_nav_goal_){
+    if(!debug && received_nav_goal_){
         navigation_action_client_->async_cancel_all_goals();
         RCLCPP_INFO(this->get_logger(), "Send cancel navigation to server");
     }
@@ -368,7 +380,7 @@ void WallTracking::execute(
     publish_resetted_pose_ = true;
     watch_timer_start_ = std::chrono::system_clock::now();
 
-    if(!debug && recieved_nav_goal_){
+    if(!debug && received_nav_goal_){
         navigation_action_client_->async_send_goal(nav_goal_msgs_, nav_send_goal_options_);
         addBehaviorStamedArray("Navigation Resume");
         RCLCPP_INFO(this->get_logger(), "Resume navigation");

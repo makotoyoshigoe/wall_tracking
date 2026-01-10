@@ -23,6 +23,7 @@ class OpenPlaceChecker{
     std::array<float, 3> get_open_laser_info(void);
     // {a_s: angle start, a_e: angle end} of sector
     std::vector<std::array<float, 3>> compute_sector_infos(void);
+    float get_sector_angle_nomalize(void);
 
     protected:
     float detect_angle_start_;

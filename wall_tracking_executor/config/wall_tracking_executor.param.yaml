@@ -1,5 +1,7 @@
 /**:
   ros__parameters:
+    gnss_sigma_th: 30.0
+
     wt_controller:
       kp: 12.0
       linear_vel:
@@ -43,5 +45,5 @@
       detect_angle_start: -90.0
       detect_angle_end: 90.0
       detect_angle_division_num: 1
-      range_th: 15.0
-      ratio_th: 0.7
+      range_th: 20.0
+      ratio_th: 0.62

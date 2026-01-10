@@ -20,7 +20,7 @@ void WallTracking::feedbackCallback([[maybe_unused]] typename std::shared_ptr<Go
 void WallTracking::resultCallback(const GoalHandleNavigateToPose::WrappedResult & result){
     switch (result.code) {
       case rclcpp_action::ResultCode::SUCCEEDED:
-        recieved_nav_goal_ = false;
+        received_nav_goal_ = false;
         RCLCPP_INFO(this->get_logger(), "Goal succeeded!");
         addBehaviorStamedArray("Navigation Succeeded");
         behaviorStampedPub();
@@ -47,6 +47,10 @@ rclcpp_action::GoalResponse WallTracking::handle_goal(
     [[maybe_unused]] const rclcpp_action::GoalUUID &uuid,
     [[maybe_unused]] std::shared_ptr<const WallTrackingAction::Goal> goal) 
 {
+    if(!goal->debug && !received_nav_goal_){
+        RCLCPP_WARN(get_logger(), "Condition not satisfied. Rejecting goal.");
+        return rclcpp_action::GoalResponse::REJECT;
+    }
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 

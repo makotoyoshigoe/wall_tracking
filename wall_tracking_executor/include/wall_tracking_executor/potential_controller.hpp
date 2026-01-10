@@ -43,6 +43,8 @@ class PotentialController{
     std::array<float, 2> get_cmd_vel(
         std::array<float, 3> open_laser_info, 
         float lin_vel_coeff);
+    std::array<float, 2> get_cmd_vel(
+        float nomalize_angle);
     std::array<float, 2> force_to_cmd_vel(Force force);
     Force calc_potential_force(void);
     Force calc_repulsive_force(void);
