@@ -124,7 +124,8 @@ private:
 	bool received_nav_goal_;
     int reseted_pose_watch_time_;
     std::string map_frame_id_;
-    float gnss_sigma_th_;
+    float gnss_sigma_th_detection_;
+    float gnss_sigma_th_arrived_;
     // float gnss_sigma_;
 
     bool publish_resetted_pose_;

@@ -34,7 +34,7 @@ void PotentialController::set_scan(
 
 std::array<float, 2> PotentialController::get_cmd_vel(
     std::array<float, 3> open_laser_info, 
-    float lin_vel_coeff)
+    float lin_velj_coeff)
 {
     std::copy(open_laser_info.begin(), open_laser_info.end(), std::begin(open_laser_info_));
     std::array<float, 2> cmd_vel = force_to_cmd_vel(calc_potential_force());
@@ -45,19 +45,25 @@ std::array<float, 2> PotentialController::get_cmd_vel(
 std::array<float, 2> PotentialController::get_cmd_vel(
     float nomalize_angle)
 {
-    return {max_linear_vel_, nomalize_angle * fabs(max_angular_vel_)};
+    std::array<float, 2> cmd_vel = {max_linear_vel_, nomalize_angle * fabs(max_angular_vel_)};
+    Force repulsive_force = calc_repulsive_force();
+    if(hypot(repulsive_force[0], repulsive_force[1]) > 0.1){
+        cmd_vel = force_to_cmd_vel(repulsive_force);
+    }
+    return cmd_vel;
 }
 
 std::array<float, 2> PotentialController::force_to_cmd_vel(Force force)
 {
-    float force_magnitude = hypotf(force.x, force.y); 
+    float force_magnitude = hypotf(force.x, force.y);
     float theta_force = atan2f(force.y, force.x);
     // RCLCPP_INFO(rclcpp::get_logger("lsa_nav_controller"), 
     //             "Force mag: %.3f, theta: %.3f, Force X: %.3f, Force Y: %.3f", 
     //             force_magnitude, theta_force, force.x, force.y);
 
     float tmp_linear_vel = force_magnitude > 1e-3 ? force.x / force_magnitude * max_linear_vel_ : 0.0f;
-    float tmp_ang_vel_vel = fabs(theta_force) > 1e-3 ? theta_force / fabs(theta_force) : 0.0f;
+    // float tmp_ang_vel_vel = fabs(theta_force) > 1e-3 ? theta_force / fabs(theta_force) : 0.0f;
+    float tmp_ang_vel_vel = fabs(theta_force) > 1e-3 ? force.y / force_magnitude * max_angular_vel_: 0.0f;
     return {
         std::clamp(tmp_linear_vel, (float)0., max_linear_vel_), 
         std::clamp(tmp_ang_vel_vel, -max_angular_vel_, max_angular_vel_)};

@@ -35,7 +35,8 @@ void WallTracking::set_param()
     // Menber Variables
     declare_parameter("map_frame_id", "map");
     declare_parameter("watch_time", 2);
-    declare_parameter("gnss_sigma_th", 30.0);
+    declare_parameter("gnss_sigma_th.detection", 30.0);
+    declare_parameter("gnss_sigma_th.arrived", 4.0);
 
     // Parameters for Controller
     declare_parameter("wt_controller.linear_vel.max", 0.2);
@@ -79,7 +80,8 @@ void WallTracking::get_param()
     // Member Variables
     map_frame_id_ = get_parameter("map_frame_id").as_string();
     watch_time_= get_parameter("watch_time").as_int();
-    gnss_sigma_th_ = get_parameter("gnss_sigma_th").as_double();
+    gnss_sigma_th_detection_ = get_parameter("gnss_sigma_th").as_double();
+    gnss_sigma_th_arrived_ = get_parameter("gnss_sigma_th").as_double();
     
     // For Controller
     float lin_max_vel = get_parameter("wt_controller.linear_vel.max").as_double();
@@ -303,6 +305,7 @@ void WallTracking::navigateOpenPlace()
     // RCLCPP_WARN(get_logger(), "linear_x: %f, angular_z: %f", cmd_vel[0], cmd_vel[1]);
     pub_cmd_vel(cmd_vel[0], cmd_vel[1]);
     pub_open_place_detection(detection_res);
+    // open_place_arrived_pub_->publish(open_place_);
 }
 
 void WallTracking::addBehaviorStamedArray(std::string behavior_name)
